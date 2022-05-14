@@ -84,9 +84,9 @@ export class Bird extends Scene {
         const black = hex_color("#000000");
         // right eye
         const right_bg_transform = model_transform.times(Mat4.translation(-0.75,0.55,0.7))
-                                            .times(Mat4.scale(0.1,0.5,0.3));
+                                                  .times(Mat4.scale(0.1,0.5,0.3));
         const right_pupil_transform = model_transform.times(Mat4.translation(-0.8,0.6,0.7))
-                                            .times(Mat4.scale(0.1,0.3,0.15));
+                                                     .times(Mat4.scale(0.1,0.3,0.15));
         this.shapes.cube.draw(context, program_state, right_bg_transform, this.materials.plastic.override({color:white}));
         this.shapes.cube.draw(context, program_state, right_pupil_transform, this.materials.plastic.override({color:black}));
         // left eye
@@ -123,5 +123,4 @@ export class Bird extends Scene {
             Math.PI / 4, context.width / context.height, 1, 100);
         this.draw_bird(context, program_state, matrix_transform);
     }
-
 }
