@@ -83,23 +83,23 @@ export class Bird extends Scene {
         const white = hex_color("#FFFFFF");
         const black = hex_color("#000000");
         // right eye
-        const right_bg_transform = model_transform.times(Mat4.translation(-0.95,0.55,0.7))
+        const right_bg_transform = model_transform.times(Mat4.translation(-0.75,0.55,0.7))
                                             .times(Mat4.scale(0.1,0.5,0.3));
-        const right_pupil_transform = model_transform.times(Mat4.translation(-1,0.6,0.7))
+        const right_pupil_transform = model_transform.times(Mat4.translation(-0.8,0.6,0.7))
                                             .times(Mat4.scale(0.1,0.3,0.15));
         this.shapes.cube.draw(context, program_state, right_bg_transform, this.materials.plastic.override({color:white}));
         this.shapes.cube.draw(context, program_state, right_pupil_transform, this.materials.plastic.override({color:black}));
         // left eye
-        const left_bg_transform = model_transform.times(Mat4.translation(0.95,0.55,0.7))
+        const left_bg_transform = model_transform.times(Mat4.translation(0.75,0.55,0.7))
                                                  .times(Mat4.scale(0.1,0.5,0.3));
-        const left_pupil_transform = model_transform.times(Mat4.translation(1,0.6,0.7))
+        const left_pupil_transform = model_transform.times(Mat4.translation(0.8,0.6,0.7))
                                                  .times(Mat4.scale(0.1,0.3,0.15)); 
         this.shapes.cube.draw(context, program_state, left_bg_transform, this.materials.plastic.override({color:white}));
         this.shapes.cube.draw(context, program_state, left_pupil_transform, this.materials.plastic.override({color:black}));
     }
 
     draw_bird(context, program_state, model_transform) {
-        const body_transform = model_transform.times(Mat4.scale(1,1,1.2));
+        const body_transform = model_transform.times(Mat4.scale(0.8,1,1.2));
         const yellow = hex_color("#F9DC35");
         this.draw_box(context, program_state, body_transform, yellow);
         this.draw_wings(context, program_state, model_transform);
@@ -117,7 +117,6 @@ export class Bird extends Scene {
             program_state.set_camera(Mat4.translation(0, 0, -10).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
         }
         const matrix_transform = Mat4.identity();
-        const yellow = hex_color("#F9DC35");
         const light_position = vec4(0, 5, 5, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
         program_state.projection_transform = Mat4.perspective(
