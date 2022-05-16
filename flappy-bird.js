@@ -44,8 +44,7 @@ export class Bird extends Scene {
         }
     }
 
-    make_control_panel() {
-    }
+    make_control_panel() {}
 
     draw_box(context, program_state, model_transform, color) {
         this.shapes.cube.draw(context, program_state, model_transform, this.materials.plastic.override({color:color}));
@@ -115,29 +114,3 @@ export class Bird extends Scene {
         this.draw_bird(context, program_state, matrix_transform);
     }
 }
-
-function circleRect(cx, cy, radius, rx, ry, rw, rh) {
-  
-    // temporary variables to set edges for testing
-    testX = cx;
-    testY = cy;
-    
-    // which edge is closest?
-    if (cx < rx)         testX = rx;        // compare to left edge
-    else if (cx > rx+rw) testX = rx+rw;     // right edge
-    if (cy < ry)         testY = ry;        // top edge
-    else if (cy > ry+rh) testY = ry+rh;     // bottom edge
-    
-    // get distance from closest edges
-    distX = cx-testX;
-    distY = cy-testY;
-    distance = sqrt( (distX*distX) + (distY*distY) );
-    
-    // if the distance is less than the radius, return collision!
-    if (distance <= radius) {
-      return true;
-    }
-    return false;
-  }
-  
-
