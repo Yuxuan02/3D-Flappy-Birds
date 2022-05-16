@@ -3,6 +3,7 @@ import {defs, tiny} from './examples/common.js';
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
+
 class Cube extends Shape {
     constructor() {
         super("position", "normal",);
@@ -112,5 +113,13 @@ export class Bird extends Scene {
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, 1, 100);
         this.draw_bird(context, program_state, matrix_transform);
+    }
+}
+
+function collision(a, b) {//two vector arguments
+    if (a==b) {//test only
+          return true;
+    } else{
+        return false;
     }
 }
