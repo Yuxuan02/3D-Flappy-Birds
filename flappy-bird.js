@@ -123,12 +123,10 @@ export class Bird extends Scene {
         const t = this.t = program_state.animation_time / 1000;
         
         const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
-        let u = this.base_yval + 3 * t_after_click - 0.5 * 8 * t_after_click * t_after_click;
-        if (u < 0)
-            u = 0;
-        this.yval = u;
+        const u = this.base_yval + 3 * t_after_click - 0.5 * 8 * t_after_click * t_after_click;
+        this.yval = u >= 0 ? u : 0;
         
-        const mat_transform = matrix_transform.times(Mat4.translation(0, u, 0));
-        this.draw_bird(context, program_state, mat_transform);
+        const model_transform = matrix_transform.times(Mat4.translation(0, this.yval, 0));
+        this.draw_bird(context, program_state, model_transform);
     }
 }
