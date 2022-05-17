@@ -41,9 +41,17 @@ export class Bird extends Scene {
                     color: hex_color("#ffffff")
                 }),
         }
+
+        this.click_time = 0;
+        this.base_yval = 0;
+        this.yval = 0;
     }
 
     make_control_panel() {
+        this.key_triggered_button("Up", ["u"], () => {
+            this.click_time = this.t;
+            this.base_yval = this.yval;
+        });
     }
 
     draw_box(context, program_state, model_transform, color) {
@@ -104,13 +112,23 @@ export class Bird extends Scene {
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
-            program_state.set_camera(Mat4.translation(0, 0, -10).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
+            program_state.set_camera(Mat4.translation(0, 0, -20).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
         }
         const matrix_transform = Mat4.identity();
         const light_position = vec4(0, 5, 5, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, 1, 100);
-        this.draw_bird(context, program_state, matrix_transform);
+        
+        const t = this.t = program_state.animation_time / 1000;
+        
+        const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
+        let u = this.base_yval + 3 * t_after_click - 0.5 * 8 * t_after_click * t_after_click;
+        if (u < 0)
+            u = 0;
+        this.yval = u;
+        
+        const mat_transform = matrix_transform.times(Mat4.translation(0, u, 0));
+        this.draw_bird(context, program_state, mat_transform);
     }
 }
