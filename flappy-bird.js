@@ -41,6 +41,13 @@ export class Bird extends Scene {
                     diffusivity: .6,
                     color: hex_color("#ffffff")
                 }),
+            pure_color: new Material(
+                new defs.Phong_Shader(),
+                {
+                    ambient: 1,
+                    diffusivity: 0,
+                }
+            ),
         }
     }
 
@@ -97,6 +104,19 @@ export class Bird extends Scene {
         this.draw_eye(context, program_state, model_transform);
     }
 
+    draw_pipe(context, program_state, model_transform) {
+        const pipe_body_transform = model_transform.times(Mat4.scale(1,2,1));
+        const green = hex_color("#528A2C");
+        const dark_green = hex_color("#142409");
+        const pipe_top_transform = model_transform.times(Mat4.translation(0,2,0))
+                                                  .times(Mat4.scale(1.2,0.5,1.2));
+        const pipe_inner_top_transform = model_transform.times(Mat4.translation(0,2,0))
+                                                        .times(Mat4.scale(0.9,0.501,0.9));
+        this.draw_box(context, program_state, pipe_top_transform, green);
+        this.draw_box(context, program_state, pipe_body_transform, green);
+        this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.pure_color.override({color:dark_green}));
+    }
+
 
     display(context, program_state) {
         // display():  Called once per frame of animation.
@@ -111,6 +131,7 @@ export class Bird extends Scene {
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, 1, 100);
-        this.draw_bird(context, program_state, matrix_transform);
+        // this.draw_bird(context, program_state, matrix_transform);
+        this.draw_pipe(context, program_state, matrix_transform);
     }
 }
