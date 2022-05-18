@@ -3,6 +3,7 @@ import {defs, tiny} from './examples/common.js';
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
+
 class Cube extends Shape {
     constructor() {
         super("position", "normal",);
@@ -40,6 +41,13 @@ export class Bird extends Scene {
                     diffusivity: .6,
                     color: hex_color("#ffffff")
                 }),
+            pure_color: new Material(
+                new defs.Phong_Shader(),
+                {
+                    ambient: 1,
+                    diffusivity: 0,
+                }
+            ),
         }
 
         this.click_time = 0;
@@ -105,7 +113,9 @@ export class Bird extends Scene {
         this.draw_eye(context, program_state, model_transform);
     }
 
-    // Calculate the y position of the bird based on the user's latest click of "up".
+    /**
+    * Calculate the y position of the bird based on the user's latest click of "up".
+    **/
     calc_y(t) {
         // t_after_click stores the time passed since the latest click of "up".
         // If user has not clicked "up" for once, t_after_click is set to 0.
@@ -117,6 +127,19 @@ export class Bird extends Scene {
         // this line should be removed later.
         // this.y = dist_from_base_y + this.base_y
         this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
+    }
+  
+    draw_pipe(context, program_state, model_transform) {
+        const pipe_body_transform = model_transform.times(Mat4.scale(1,2,1));
+        const green = hex_color("#528A2C");
+        const dark_green = hex_color("#142409");
+        const pipe_top_transform = model_transform.times(Mat4.translation(0,2,0))
+                                                  .times(Mat4.scale(1.2,0.5,1.2));
+        const pipe_inner_top_transform = model_transform.times(Mat4.translation(0,2,0))
+                                                        .times(Mat4.scale(0.9,0.501,0.9));
+        this.draw_box(context, program_state, pipe_top_transform, green);
+        this.draw_box(context, program_state, pipe_body_transform, green);
+        this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.pure_color.override({color:dark_green}));
     }
 
     display(context, program_state) {
