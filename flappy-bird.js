@@ -1,7 +1,7 @@
 import {defs, tiny} from './examples/common.js';
 
 const {
-    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
+    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
 } = tiny;
 
 class Cube extends Shape {
@@ -22,16 +22,42 @@ class Cube extends Shape {
     }
 }
 
+export class Test_Data {
+    // **Test_Data** pre-loads some Shapes and Textures that other Scenes can borrow.
+    constructor() {
+        this.textures = {
+            rgb: new Texture("assets/rgb.jpg"),
+            earth: new Texture("assets/earth.gif"),
+            stars: new Texture("assets/stars.png"),
+            text: new Texture("assets/text.png"),
+        }
+        this.shapes = {
+            donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
+            cone: new defs.Closed_Cone(4, 10, [[0, 2], [0, 1]]),
+            capped: new defs.Capped_Cylinder(4, 12, [[0, 2], [0, 1]]),
+            ball: new defs.Subdivision_Sphere(3, [[0, 1], [0, 1]]),
+            cube: new defs.Cube(),
+            prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
+            gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
+            donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
+            cube: new Cube(),
+            sun: new defs.Subdivision_Sphere(4),
+        };
+    }
+}
+
 export class Bird extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
+        this.data = new Test_Data();
+        this.shapes = Object.assign({}, this.data.shapes);
+        this.shapes.square = new defs.Square();
+        const shader = new defs.Fake_Bump_Map(1);
+
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
-        this.shapes = {
-            cube: new Cube(),
-            sun: new defs.Subdivision_Sphere(4),
-        };
+
         // *** Materials
         this.materials = {
             plastic: new Material(
@@ -41,12 +67,39 @@ export class Bird extends Scene {
                     diffusivity: .6,
                     color: hex_color("#ffffff")
                 }),
+            pure_color: new Material(
+                new defs.Phong_Shader(),
+                {
+                    ambient: 1,
+                    diffusivity: 0,
+                }
+            ),
         }
+        this.material = new Material(shader, {
+            color: color(.4, .8, .4, 1),
+            ambient: .4, texture: this.data.textures.stars
+        })
+        this.click_time = 0;
+        this.base_y = 0;
+        this.y = 0;
+        this.pipe_num = 100;
+        this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 6) + 2) //return a array of lenth 5 filled by random integer from 2 to 7);
+        this.pipe_gap = 20; //gap between top and bottom pipe
+        this.pipe_distance = 10; //distance between 2 pipe
+        this.starting_distance = 10; //the distance between first pipe and the bird
+        this.game_start = false;
+        this.elapsed_time_before_game_start = 0;
+        this.game_speed = 4;
     }
 
     make_control_panel() {
+        this.key_triggered_button("Up", ["u"], () => {
+            this.click_time = this.t;
+            this.base_y = this.y;
+            this.game_start = true;
+        });
     }
-
+    
     draw_box(context, program_state, model_transform, color) {
         this.shapes.cube.draw(context, program_state, model_transform, this.materials.plastic.override({color:color}));
     }
@@ -98,46 +151,115 @@ export class Bird extends Scene {
         this.draw_eye(context, program_state, model_transform);
     }
 
+    /**
+    * Calculate the y position of the bird based on the user's latest click of "up".
+    **/
+    calc_y(t) {
+        // t_after_click stores the time passed since the latest click of "up".
+        // If user has not clicked "up" for once, t_after_click is set to 0.
+        const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
+        const dist_from_base_y = 3 * t_after_click - 0.5 * 8 * t_after_click * t_after_click;
+        
+        // This line sets a minimum y position of 0 to make development easier.
+        // In the actual game, once the user clicked "up", there is no such minimum y value, and
+        // this line should be removed later.
+        // this.y = dist_from_base_y + this.base_y
+        this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
+        //make the initial position of the bird 10
+        this.y = t_after_click === 0? 10:this.y;
+    }
+    
+    isCollision(cx, cy, radius, rx, ry, rw, rh) {
+  
+        // temporary variables to set edges for testing
+        var testX = cx;
+        var testY = cy;
+        
+        // which edge is closest?
+        if (cx < rx)         testX = rx;        // compare to left edge
+        else if (cx > rx+rw) testX = rx+rw;     // right edge
+        if (cy < ry)         testY = ry;        // top edge
+        else if (cy > ry+rh) testY = ry+rh;     // bottom edge
+        
+        // get distance from closest edges
+        var distX = cx-testX;
+        var distY = cy-testY;
+        var distance = Math.sqrt( (distX*distX) + (distY*distY) );
+        
+        // if the distance is less than the radius, collision!
+        if (distance <= radius) {
+          return true;
+        }
+        return false;
+      }
+  
+    draw_pipe(context, program_state, model_transform, pipe_len) {
+        const pipe_body_transform = model_transform.times(Mat4.scale(1,pipe_len,1));
+        const green = hex_color("#528A2C");
+        const dark_green = hex_color("#142409");
+        const pipe_top_transform = model_transform.times(Mat4.translation(0,pipe_len,0))
+                                                  .times(Mat4.scale(1.2,0.5,1.2));
+        const pipe_inner_top_transform = model_transform.times(Mat4.translation(0,pipe_len,0))
+                                                        .times(Mat4.scale(0.9,0.501,0.9));
+        this.draw_box(context, program_state, pipe_top_transform, green);
+        this.draw_box(context, program_state, pipe_body_transform, green);
+        this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.pure_color.override({color:dark_green}));
+    }
+
+    draw_all_pipe(context, program_state, model_transform){
+        for(let i=0;i<this.pipe_num;i++){
+            let pipe_len = this.pipe_lens[i];
+
+            //draw the top pipes
+            const bottom_pipe_model_transform = model_transform.times(Mat4.translation(0, pipe_len-11, i*this.pipe_distance))
+            this.draw_pipe(context,program_state, bottom_pipe_model_transform, pipe_len);
+
+            //draw bottom pipe
+            const top_pipe_model_transform = model_transform.times(Mat4.translation(0, this.pipe_gap - (9-pipe_len), i*this.pipe_distance))
+                                                                        .times(Mat4.rotation(Math.PI, 1,0,0));
+            this.draw_pipe(context,program_state, top_pipe_model_transform, 9 - pipe_len);
+        }
+    }
 
     display(context, program_state) {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
+        
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
-            program_state.set_camera(Mat4.translation(0, 0, -10).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
+            program_state.set_camera(Mat4.translation(0, 0, -20).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
         }
         const matrix_transform = Mat4.identity();
         const light_position = vec4(0, 5, 5, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, 1, 100);
-        this.draw_bird(context, program_state, matrix_transform);
+        
+        const t = this.t = program_state.animation_time / 1000;
+
+        this.elapsed_time_before_game_start = this.game_start? this.elapsed_time_before_game_start:t; //keep track of the time before user begin to play
+
+        this.calc_y(t);
+
+        var cx, cy, radius, rx, ry, rw, rh;//Maintains some variables; update by pipe and bird 
+        cx=0;
+        cy=this.y;
+        radius=1;
+        if(this.isCollision(cx, cy, radius, rx, ry, rw, rh)){//x, y, r of Circle; x, y, w, h of Pipe  
+
+        }else{
+
+        }
+        const bird_model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0));
+        this.draw_bird(context, program_state, bird_model_transform);
+        
+
+        this.starting_distance = 10; //the distance between first pipe and the bird
+        const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
+        const starting_pipe_model_transform = matrix_transform.times(Mat4.translation(0, 10, pipe_pos));
+        this.draw_all_pipe(context,program_state, starting_pipe_model_transform);
+
+        this.shapes.square.draw(context, program_state, Mat4.translation(15, 10-this.y, -5*t%100+50).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)).times(Mat4.scale(100, 100, 1)),this.material.override(this.data.textures.earth));
     }
 }
-
-function circleRect(cx, cy, radius, rx, ry, rw, rh) {
-  
-    // temporary variables to set edges for testing
-    testX = cx;
-    testY = cy;
-    
-    // which edge is closest?
-    if (cx < rx)         testX = rx;        // compare to left edge
-    else if (cx > rx+rw) testX = rx+rw;     // right edge
-    if (cy < ry)         testY = ry;        // top edge
-    else if (cy > ry+rh) testY = ry+rh;     // bottom edge
-    
-    // get distance from closest edges
-    distX = cx-testX;
-    distY = cy-testY;
-    distance = sqrt( (distX*distX) + (distY*distY) );
-    
-    // if the distance is less than the radius, return collision!
-    if (distance <= radius) {
-      return true;
-    }
-    return false;
-  }
-  
-
