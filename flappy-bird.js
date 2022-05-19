@@ -4,6 +4,8 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
 
+const MAX_ANGLE = Math.PI / 8;
+const DELTA_ANGLE = Math.PI / 64;
 class Cube extends Shape {
     constructor() {
         super("position", "normal",);
@@ -53,6 +55,8 @@ export class Bird extends Scene {
         this.click_time = 0;
         this.base_y = 0;
         this.y = 0;
+        this.initial_v_y = 4;
+        this.angle = 0;
         this.pipe_num = 100;
         this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 6) + 2) //return a array of lenth 5 filled by random integer from 2 to 7);
         this.pipe_gap = 20; //gap between top and bottom pipe
@@ -68,6 +72,9 @@ export class Bird extends Scene {
             this.click_time = this.t;
             this.base_y = this.y;
             this.game_start = true;
+            while (this.angle > -MAX_ANGLE) {
+                this.angle -= DELTA_ANGLE;
+            }
         });
     }
 
@@ -121,24 +128,6 @@ export class Bird extends Scene {
         this.draw_mouth(context, program_state, model_transform);
         this.draw_eye(context, program_state, model_transform);
     }
-
-    /**
-    * Calculate the y position of the bird based on the user's latest click of "up".
-    **/
-    calc_y(t) {
-        // t_after_click stores the time passed since the latest click of "up".
-        // If user has not clicked "up" for once, t_after_click is set to 0.
-        const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
-        const dist_from_base_y = 3 * t_after_click - 0.5 * 8 * t_after_click * t_after_click;
-        
-        // This line sets a minimum y position of 0 to make development easier.
-        // In the actual game, once the user clicked "up", there is no such minimum y value, and
-        // this line should be removed later.
-        // this.y = dist_from_base_y + this.base_y
-        this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
-        //make the initial position of the bird 10
-        this.y = t_after_click === 0? 10:this.y;
-    }
   
     draw_pipe(context, program_state, model_transform, pipe_len) {
         const pipe_body_transform = model_transform.times(Mat4.scale(1,pipe_len,1));
@@ -153,9 +142,32 @@ export class Bird extends Scene {
         this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.pure_color.override({color:dark_green}));
     }
 
-    draw_all_pipe(context, program_state, model_transform){
+    /**
+    * update the bird's y position
+    **/
+    update_y(time_after_click) {
+        // If user has not clicked "up" for once, t_after_click is set to 0.
+        const dist_from_base_y = this.initial_v_y * time_after_click - 0.5 * 9.8 * time_after_click * time_after_click;
+        
+        // This line sets a minimum y position of 0 to make development easier.
+        // In the actual game, once the user clicked "up", there is no such minimum y value, and
+        // this line should be removed later.
+        // this.y = dist_from_base_y + this.base_y
+        this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
+        this.y = time_after_click === 0? 10:this.y;
+    }
+    /**
+     * get the bird's rotation angle based on the time passed since the latest click of "up".
+     * */
+    update_angle(time_after_click) {
+        const angle_rate = DELTA_ANGLE * (1 + time_after_click );
+        const angle = this.angle + time_after_click * angle_rate;
+        this.angle = angle > MAX_ANGLE * 3.5 ? MAX_ANGLE * 3.5 : angle;
+    }
+    
+    draw_all_pipe(context, program_state, model_transform) {
         for(let i=0;i<this.pipe_num;i++){
-            let pipe_len = this.pipe_lens[i];
+            const pipe_len = this.pipe_lens[i];
 
             //draw the top pipes
             const bottom_pipe_model_transform = model_transform.times(Mat4.translation(0, pipe_len-11, i*this.pipe_distance))
@@ -174,22 +186,24 @@ export class Bird extends Scene {
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
-            program_state.set_camera(Mat4.translation(0, 0, -20).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
+            program_state.set_camera(Mat4.translation(0, -12, -32).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
         }
         const matrix_transform = Mat4.identity();
         const light_position = vec4(0, 5, 5, 1);
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, 1, 100);
-        
         const t = this.t = program_state.animation_time / 1000;
+        const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
+
 
         this.elapsed_time_before_game_start = this.game_start? this.elapsed_time_before_game_start:t; //keep track of the time before user begin to play
 
-        this.calc_y(t);
-
-        const bird_model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0));
-        this.draw_bird(context, program_state, bird_model_transform);
+        this.update_y(t_after_click);
+        this.update_angle(t_after_click);
+        const model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0))
+                                                .times(Mat4.rotation(this.angle,1,0,0));
+        this.draw_bird(context, program_state, model_transform);
         
         this.starting_distance = 10; //the distance between first pipe and the bird
         const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
