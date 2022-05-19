@@ -57,12 +57,21 @@ export class Bird extends Scene {
         this.y = 0;
         this.initial_v_y = 3;
         this.angle = 0;
+        this.pipe_num = 100;
+        this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 6) + 2) //return a array of lenth 5 filled by random integer from 2 to 7);
+        this.pipe_gap = 20; //gap between top and bottom pipe
+        this.pipe_distance = 10; //distance between 2 pipe
+        this.starting_distance = 10; //the distance between first pipe and the bird
+        this.game_start = false;
+        this.elapsed_time_before_game_start = 0;
+        this.game_speed = 4;
     }
 
     make_control_panel() {
         this.key_triggered_button("Up", ["u"], () => {
             this.click_time = this.t;
             this.base_y = this.y;
+            this.game_start = true;
             while (this.angle > -MAX_ANGLE) {
                 this.angle -= DELTA_ANGLE;
             }
@@ -119,14 +128,14 @@ export class Bird extends Scene {
         this.draw_mouth(context, program_state, model_transform);
         this.draw_eye(context, program_state, model_transform);
     }
-
-    draw_pipe(context, program_state, model_transform) {
-        const pipe_body_transform = model_transform.times(Mat4.scale(1,2,1));
+  
+    draw_pipe(context, program_state, model_transform, pipe_len) {
+        const pipe_body_transform = model_transform.times(Mat4.scale(1,pipe_len,1));
         const green = hex_color("#528A2C");
         const dark_green = hex_color("#142409");
-        const pipe_top_transform = model_transform.times(Mat4.translation(0,2,0))
+        const pipe_top_transform = model_transform.times(Mat4.translation(0,pipe_len,0))
                                                   .times(Mat4.scale(1.2,0.5,1.2));
-        const pipe_inner_top_transform = model_transform.times(Mat4.translation(0,2,0))
+        const pipe_inner_top_transform = model_transform.times(Mat4.translation(0,pipe_len,0))
                                                         .times(Mat4.scale(0.9,0.501,0.9));
         this.draw_box(context, program_state, pipe_top_transform, green);
         this.draw_box(context, program_state, pipe_body_transform, green);
@@ -145,6 +154,7 @@ export class Bird extends Scene {
         // this line should be removed later.
         // this.y = dist_from_base_y + this.base_y
         this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
+        this.y = time_after_click === 0? 10:this.y;
     }
     /**
      * get the bird's rotation angle based on the time passed since the latest click of "up".
@@ -153,6 +163,21 @@ export class Bird extends Scene {
         const angle = this.angle + time_after_click * DELTA_ANGLE;
         this.angle = angle > MAX_ANGLE ? MAX_ANGLE : angle;
     }
+    
+    draw_all_pipe(context, program_state, model_transform) {
+        for(let i=0;i<this.pipe_num;i++){
+            let pipe_len = this.pipe_lens[i];
+
+            //draw the top pipes
+            const bottom_pipe_model_transform = model_transform.times(Mat4.translation(0, pipe_len-11, i*this.pipe_distance))
+            this.draw_pipe(context,program_state, bottom_pipe_model_transform, pipe_len);
+
+            //draw bottom pipe
+            const top_pipe_model_transform = model_transform.times(Mat4.translation(0, this.pipe_gap - (9-pipe_len), i*this.pipe_distance))
+                                                                        .times(Mat4.rotation(Math.PI, 1,0,0));
+            this.draw_pipe(context,program_state, top_pipe_model_transform, 9 - pipe_len);
+        }
+    }
 
     display(context, program_state) {
         // display():  Called once per frame of animation.
@@ -160,7 +185,7 @@ export class Bird extends Scene {
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
-            program_state.set_camera(Mat4.translation(0, 0, -20).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
+            program_state.set_camera(Mat4.translation(0, -12, -32).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
         }
         const matrix_transform = Mat4.identity();
         const light_position = vec4(0, 5, 5, 1);
@@ -169,10 +194,19 @@ export class Bird extends Scene {
             Math.PI / 4, context.width / context.height, 1, 100);
         const t = this.t = program_state.animation_time / 1000;
         const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
+
+
+        this.elapsed_time_before_game_start = this.game_start? this.elapsed_time_before_game_start:t; //keep track of the time before user begin to play
+
         this.update_y(t_after_click);
         this.update_angle(t_after_click);
         const model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0))
                                                 .times(Mat4.rotation(this.angle,1,0,0));
         this.draw_bird(context, program_state, model_transform);
+        
+        this.starting_distance = 10; //the distance between first pipe and the bird
+        const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
+        const starting_pipe_model_transform = matrix_transform.times(Mat4.translation(0, 10, pipe_pos));
+        this.draw_all_pipe(context,program_state, starting_pipe_model_transform);
     }
 }
