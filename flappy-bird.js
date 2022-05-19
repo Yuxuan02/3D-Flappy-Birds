@@ -4,6 +4,8 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
 
+const MAX_ANGLE = Math.PI / 8;
+const DELTA_ANGLE = Math.PI / 64;
 class Cube extends Shape {
     constructor() {
         super("position", "normal",);
@@ -53,12 +55,17 @@ export class Bird extends Scene {
         this.click_time = 0;
         this.base_y = 0;
         this.y = 0;
+        this.initial_v_y = 3;
+        this.angle = 0;
     }
 
     make_control_panel() {
         this.key_triggered_button("Up", ["u"], () => {
             this.click_time = this.t;
             this.base_y = this.y;
+            while (this.angle > -MAX_ANGLE) {
+                this.angle -= DELTA_ANGLE;
+            }
         });
     }
 
@@ -113,22 +120,6 @@ export class Bird extends Scene {
         this.draw_eye(context, program_state, model_transform);
     }
 
-    /**
-    * Calculate the y position of the bird based on the user's latest click of "up".
-    **/
-    calc_y(t) {
-        // t_after_click stores the time passed since the latest click of "up".
-        // If user has not clicked "up" for once, t_after_click is set to 0.
-        const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
-        const dist_from_base_y = 3 * t_after_click - 0.5 * 8 * t_after_click * t_after_click;
-        
-        // This line sets a minimum y position of 0 to make development easier.
-        // In the actual game, once the user clicked "up", there is no such minimum y value, and
-        // this line should be removed later.
-        // this.y = dist_from_base_y + this.base_y
-        this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
-    }
-  
     draw_pipe(context, program_state, model_transform) {
         const pipe_body_transform = model_transform.times(Mat4.scale(1,2,1));
         const green = hex_color("#528A2C");
@@ -140,6 +131,27 @@ export class Bird extends Scene {
         this.draw_box(context, program_state, pipe_top_transform, green);
         this.draw_box(context, program_state, pipe_body_transform, green);
         this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.pure_color.override({color:dark_green}));
+    }
+
+    /**
+    * update the bird's y position
+    **/
+    update_y(time_after_click) {
+        // If user has not clicked "up" for once, t_after_click is set to 0.
+        const dist_from_base_y = this.initial_v_y * time_after_click - 0.5 * 8 * time_after_click * time_after_click;
+        
+        // This line sets a minimum y position of 0 to make development easier.
+        // In the actual game, once the user clicked "up", there is no such minimum y value, and
+        // this line should be removed later.
+        // this.y = dist_from_base_y + this.base_y
+        this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
+    }
+    /**
+     * get the bird's rotation angle based on the time passed since the latest click of "up".
+     * */
+    update_angle(time_after_click) {
+        const angle = this.angle + time_after_click * DELTA_ANGLE;
+        this.angle = angle > MAX_ANGLE ? MAX_ANGLE : angle;
     }
 
     display(context, program_state) {
@@ -155,12 +167,12 @@ export class Bird extends Scene {
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, 1, 100);
-        
         const t = this.t = program_state.animation_time / 1000;
-
-        this.calc_y(t);
-
-        const model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0));
+        const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
+        this.update_y(t_after_click);
+        this.update_angle(t_after_click);
+        const model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0))
+                                                .times(Mat4.rotation(this.angle,1,0,0));
         this.draw_bird(context, program_state, model_transform);
     }
 }
