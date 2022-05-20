@@ -1,7 +1,7 @@
 import {defs, tiny} from './examples/common.js';
 
 const {
-    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
+    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
 } = tiny;
 
 const MAX_ANGLE = Math.PI / 8;
@@ -24,16 +24,42 @@ class Cube extends Shape {
     }
 }
 
+export class Test_Data {
+    // **Test_Data** pre-loads some Shapes and Textures that other Scenes can borrow.
+    constructor() {
+        this.textures = {
+            rgb: new Texture("assets/background.jpg"),
+            earth: new Texture("assets/earth.gif"),
+            stars: new Texture("assets/stars.png"),
+            text: new Texture("assets/text.png"),
+        }
+        this.shapes = {
+            donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
+            cone: new defs.Closed_Cone(4, 10, [[0, 2], [0, 1]]),
+            capped: new defs.Capped_Cylinder(4, 12, [[0, 2], [0, 1]]),
+            ball: new defs.Subdivision_Sphere(3, [[0, 1], [0, 1]]),
+            cube: new defs.Cube(),
+            prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
+            gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
+            donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
+            cube: new Cube(),
+            sun: new defs.Subdivision_Sphere(4),
+        };
+    }
+}
+
 export class Bird extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
+        this.data = new Test_Data();
+        this.shapes = Object.assign({}, this.data.shapes);
+        this.shapes.square = new defs.Square();
+        const shader = new defs.Fake_Bump_Map(1);
+
 
         // At the beginning of our program, load one of each of these shape definitions onto the GPU.
-        this.shapes = {
-            cube: new Cube(),
-            sun: new defs.Subdivision_Sphere(4),
-        };
+
         // *** Materials
         this.materials = {
             plastic: new Material(
@@ -51,7 +77,10 @@ export class Bird extends Scene {
                 }
             ),
         }
-
+        this.material = new Material(shader, {
+            color: color(.4, .8, .4, 1),
+            ambient: .4, texture: this.data.textures.stars
+        })
         this.click_time = 0;
         this.base_y = 0;
         this.y = 0;
@@ -128,6 +157,35 @@ export class Bird extends Scene {
         this.draw_mouth(context, program_state, model_transform);
         this.draw_eye(context, program_state, model_transform);
     }
+    isCollision(cx, cy, radius, rx, ry, rw, rh) {
+  
+        // temporary variables to set edges for testing
+        var testX = cx;
+        var testY = cy;
+        
+        // which edge is closest?
+        if (cx < rx){
+            testX = rx;  // compare to left edge
+        }else if (cx > rx+rw){
+            testX = rx+rw;     // right edge
+        } 
+        if (cy < ry){
+            testY = ry;        // top edge
+        }else if(cy > ry+rh){
+            testY = ry+rh;     // bottom edge
+        } 
+
+        // get distance from closest edges
+        var distX = cx-testX;
+        var distY = cy-testY;
+        var distance = Math.sqrt( (distX*distX) + (distY*distY) );
+        
+        // if the distance is less than the radius, collision!
+        if (distance <= radius) {
+          return true;
+        }
+        return false;
+      }
   
     draw_pipe(context, program_state, model_transform, pipe_len) {
         const pipe_body_transform = model_transform.times(Mat4.scale(1,pipe_len,1));
@@ -209,5 +267,6 @@ export class Bird extends Scene {
         const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
         const starting_pipe_model_transform = matrix_transform.times(Mat4.translation(0, 10, pipe_pos));
         this.draw_all_pipe(context,program_state, starting_pipe_model_transform);
+        this.shapes.square.draw(context, program_state, Mat4.translation(15, 48-this.y, -5*t%50+25).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)).times(Mat4.scale(65, 65, 1)),this.material.override(this.data.textures.rgb));
     }
 }
