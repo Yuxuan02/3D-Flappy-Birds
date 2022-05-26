@@ -28,10 +28,11 @@ export class Test_Data {
     // **Test_Data** pre-loads some Shapes and Textures that other Scenes can borrow.
     constructor() {
         this.textures = {
-            rgb: new Texture("assets/background.jpg"),
+            background: new Texture("assets/background.jpg"),
             earth: new Texture("assets/earth.gif"),
             stars: new Texture("assets/stars.png"),
             text: new Texture("assets/text.png"),
+            grass: new Texture("assets/grass.jpg"),
         }
         this.shapes = {
             donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
@@ -65,21 +66,21 @@ export class Bird extends Scene {
             plastic: new Material(
                 new defs.Phong_Shader(),
                 {
-                    ambient: .4,
+                    ambient: .8,
                     diffusivity: .6,
-                    color: hex_color("#ffffff")
+                    color: hex_color("#ffffff"),
                 }),
             pure_color: new Material(
                 new defs.Phong_Shader(),
                 {
                     ambient: 1,
                     diffusivity: 0,
-                }
-            ),
+                }),
         }
-        this.material = new Material(shader, {
-            color: color(.4, .8, .4, 1),
-            ambient: .4, texture: this.data.textures.stars
+        this.background_material = new Material(shader, {
+            color: hex_color("#000000"),
+            ambient: 1, 
+            texture: this.data.textures.stars,
         })
         this.click_time = 0;
         this.base_y = 0;
@@ -157,6 +158,7 @@ export class Bird extends Scene {
         this.draw_mouth(context, program_state, model_transform);
         this.draw_eye(context, program_state, model_transform);
     }
+
     isCollision(cx, cy, radius, rx, ry, rw, rh) {
   
         // temporary variables to set edges for testing
@@ -207,10 +209,7 @@ export class Bird extends Scene {
         // If user has not clicked "up" for once, t_after_click is set to 0.
         const dist_from_base_y = this.initial_v_y * time_after_click - 0.5 * 9.8 * time_after_click * time_after_click;
         
-        // This line sets a minimum y position of 0 to make development easier.
-        // In the actual game, once the user clicked "up", there is no such minimum y value, and
-        // this line should be removed later.
-        // this.y = dist_from_base_y + this.base_y
+        // This line sets a minimum y position of 0.
         this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
         this.y = time_after_click === 0? 10:this.y;
     }
@@ -234,8 +233,15 @@ export class Bird extends Scene {
             //draw bottom pipe
             const top_pipe_model_transform = model_transform.times(Mat4.translation(0, this.pipe_gap - (9-pipe_len), i*this.pipe_distance))
                                                                         .times(Mat4.rotation(Math.PI, 1,0,0));
-            this.draw_pipe(context,program_state, top_pipe_model_transform, 9 - pipe_len);
+            this.draw_pipe(context, program_state, top_pipe_model_transform, 9 - pipe_len);
         }
+    }
+
+    draw_ground(context, program_state, model_transform) {
+        const ground_model_transform = model_transform.times(Mat4.scale(20, 1, 60))
+                                                      .times(Mat4.translation(0, -1, 0));
+        const green = hex_color("#82C963");
+        this.shapes.cube.draw(context, program_state, ground_model_transform, this.materials.pure_color.override({color: green}));
     }
 
     display(context, program_state) {
@@ -262,11 +268,14 @@ export class Bird extends Scene {
         const model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0))
                                                 .times(Mat4.rotation(this.angle,1,0,0));
         this.draw_bird(context, program_state, model_transform);
-        
+        this.draw_ground(context, program_state, matrix_transform);
+
         this.starting_distance = 10; //the distance between first pipe and the bird
         const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
         const starting_pipe_model_transform = matrix_transform.times(Mat4.translation(0, 10, pipe_pos));
         this.draw_all_pipe(context,program_state, starting_pipe_model_transform);
-        this.shapes.square.draw(context, program_state, Mat4.translation(15, 48-this.y, -5*t%50+25).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)).times(Mat4.scale(65, 65, 1)),this.material.override(this.data.textures.rgb));
+        this.shapes.square.draw(context, program_state, 
+            Mat4.translation(15, 56-this.y, -5*t%50+25).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)).times(Mat4.scale(65, 65, 1)),
+            this.background_material.override(this.data.textures.background));
     }
 }
