@@ -29,22 +29,22 @@ export class Test_Data {
     constructor() {
         this.textures = {
             background: new Texture("assets/background.jpg"),
-            earth: new Texture("assets/earth.gif"),
+            //earth: new Texture("assets/earth.gif"),
             stars: new Texture("assets/stars.png"),
-            text: new Texture("assets/text.png"),
+            //text: new Texture("assets/text.png"),
             grass: new Texture("assets/grass.jpg"),
         }
         this.shapes = {
-            donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
-            cone: new defs.Closed_Cone(4, 10, [[0, 2], [0, 1]]),
-            capped: new defs.Capped_Cylinder(4, 12, [[0, 2], [0, 1]]),
-            ball: new defs.Subdivision_Sphere(3, [[0, 1], [0, 1]]),
-            cube: new defs.Cube(),
-            prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
-            gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
-            donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
+            //donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
+            //cone: new defs.Closed_Cone(4, 10, [[0, 2], [0, 1]]),
+            //capped: new defs.Capped_Cylinder(4, 12, [[0, 2], [0, 1]]),
+            //ball: new defs.Subdivision_Sphere(3, [[0, 1], [0, 1]]),
+            //cube: new defs.Cube(),
+            //prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
+            //gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
+            //donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
             cube: new Cube(),
-            sun: new defs.Subdivision_Sphere(4),
+            //sun: new defs.Subdivision_Sphere(4),
         };
     }
 }
