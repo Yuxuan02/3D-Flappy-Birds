@@ -180,6 +180,13 @@ export class Bird extends Scene {
         }
     }
 
+    draw_ground(context, program_state, model_transform) {
+        const ground_model_transform = model_transform.times(Mat4.scale(20, 1, 60))
+                                                      .times(Mat4.translation(0, -1, 0));
+        const green = hex_color("#82C963");
+        this.shapes.cube.draw(context, program_state, ground_model_transform, this.materials.pure_color.override({color: green}));
+    }
+
     display(context, program_state) {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
@@ -204,6 +211,8 @@ export class Bird extends Scene {
         const model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0))
                                                 .times(Mat4.rotation(this.angle,1,0,0));
         this.draw_bird(context, program_state, model_transform);
+
+        this.draw_ground(context, program_state, matrix_transform);
         
         this.starting_distance = 10; //the distance between first pipe and the bird
         const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
