@@ -1,10 +1,10 @@
 import {defs, tiny} from './examples/common.js';
 
 const {
-    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
+    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
 } = tiny;
 
-const MAX_ANGLE = Math.PI / 8;
+const MAX_ANGLE = Math.PI / 16;
 const DELTA_ANGLE = Math.PI / 64;
 class Cube extends Shape {
     constructor() {
@@ -33,13 +33,22 @@ export class Bird extends Scene {
         this.shapes = {
             cube: new Cube(),
             sun: new defs.Subdivision_Sphere(4),
+            square: new defs.Square(),
         };
         // *** Materials
+
+        this.textures = {
+            background: new Texture("assets/background.jpg"),
+            earth: new Texture("assets/earth.gif"),
+            stars: new Texture("assets/stars.png"),
+            text: new Texture("assets/text.png"),
+        }
+
         this.materials = {
             plastic: new Material(
                 new defs.Phong_Shader(),
                 {
-                    ambient: .4,
+                    ambient: .6,
                     diffusivity: .6,
                     color: hex_color("#ffffff")
                 }),
@@ -48,8 +57,13 @@ export class Bird extends Scene {
                 {
                     ambient: 1,
                     diffusivity: 0,
-                }
-            ),
+                }),
+            background: new Material(
+                new defs.Fake_Bump_Map(1), {
+                    color: hex_color("#000000"),
+                    ambient: 1, 
+                    texture: this.textures.background,
+                }),
         }
 
         this.click_time = 0;
@@ -139,7 +153,7 @@ export class Bird extends Scene {
                                                         .times(Mat4.scale(0.9,0.501,0.9));
         this.draw_box(context, program_state, pipe_top_transform, green);
         this.draw_box(context, program_state, pipe_body_transform, green);
-        this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.pure_color.override({color:dark_green}));
+        this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.plastic.override({color:dark_green}));
     }
 
     /**
@@ -154,7 +168,7 @@ export class Bird extends Scene {
         // this line should be removed later.
         // this.y = dist_from_base_y + this.base_y
         this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
-        this.y = time_after_click === 0? 10:this.y;
+        this.y = time_after_click === 0? 15:this.y;
     }
     /**
      * get the bird's rotation angle based on the time passed since the latest click of "up".
@@ -162,7 +176,7 @@ export class Bird extends Scene {
     update_angle(time_after_click) {
         const angle_rate = DELTA_ANGLE * (1 + time_after_click );
         const angle = this.angle + time_after_click * angle_rate;
-        this.angle = angle > MAX_ANGLE * 3.5 ? MAX_ANGLE * 3.5 : angle;
+        this.angle = angle > MAX_ANGLE ? MAX_ANGLE : angle;
     }
     
     draw_all_pipe(context, program_state, model_transform) {
@@ -187,13 +201,21 @@ export class Bird extends Scene {
         this.shapes.cube.draw(context, program_state, ground_model_transform, this.materials.pure_color.override({color: green}));
     }
 
+    draw_background(context, program_state, model_transform, t) {
+        model_transform = model_transform.times(Mat4.translation(15, 48 - 1 / 5 * this.y, -5 * t % 50 + 25))
+                                         .times(Mat4.rotation(Math.PI / 2, 0, 1, 0))
+                                         .times(Mat4.scale(65, 65, 1));
+        
+        this.shapes.square.draw(context, program_state, model_transform, this.materials.background);
+    }
+
     display(context, program_state) {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
-            program_state.set_camera(Mat4.translation(0, -12, -32).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
+            program_state.set_camera(Mat4.translation(0, -14, -36).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
         }
         const matrix_transform = Mat4.identity();
         const light_position = vec4(0, 5, 5, 1);
@@ -213,6 +235,7 @@ export class Bird extends Scene {
         this.draw_bird(context, program_state, model_transform);
 
         this.draw_ground(context, program_state, matrix_transform);
+        this.draw_background(context, program_state, matrix_transform, t);
         
         this.starting_distance = 10; //the distance between first pipe and the bird
         const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
