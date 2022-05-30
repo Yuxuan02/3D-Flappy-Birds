@@ -224,10 +224,10 @@ export class Bird extends Scene {
         //determine collision on top and bottom
         if (bottom_pipe[2][3] < 3 && bottom_pipe[2][3] > -2) {
             const bottom_pipe_position = {
-                rx: bottom_pipe[2][3] - 0.5,
-                ry: 0,
-                rw: 1,
-                rh: pipe_len * 2
+                rec_x_pos: bottom_pipe[2][3] - 0.5,
+                rec_y_pos: 0,
+                rec_width: 1,
+                rec_height: pipe_len * 2
             }
             if (this.isCollision(bottom_pipe_position)) {
                 this.game_end = true;
@@ -236,10 +236,10 @@ export class Bird extends Scene {
 
         if (top_pipe[2][3] < 3 && top_pipe[2][3] > -2) {
             const top_pipe_position = {
-                rx: top_pipe[2][3] - 0.5,
-                ry: (this.pipe_gap - 9) + pipe_len * 2,
-                rw: 1,
-                rh: (9 - pipe_len) * 2
+                rec_x_pos: top_pipe[2][3] - 0.5,
+                rec_y_pos: (this.pipe_gap - 9) + pipe_len * 2,
+                rec_width: 1,
+                rec_height: (9 - pipe_len) * 2
             }
             if (this.isCollision(top_pipe_position)) {
                 this.game_end = true;
@@ -275,37 +275,35 @@ export class Bird extends Scene {
 
 
     isCollision(pipe_position) {
-        const rx = pipe_position.rx, ry = pipe_position.ry, rw = pipe_position.rw, rh = pipe_position.rh;
+        const { rec_x_pos, rec_y_pos, rec_width, rec_height } = pipe_position
 
         //bird only changes its y location
-        const cx = 1.25, cy = this.y, radius = 1;
+        const circle_x_pos = 0.5, circle_y_pos = this.y, circle_radius = 1;
 
         // temporary variables to set edges for testing
-        let testX = cx;
-        let testY = cy;
+        let closest_x = circle_x_pos;
+        let closest_y = circle_y_pos;
 
         // which edge is closest?
-        if (cx < rx) {
-            testX = rx;        // compare to left edge
-        } else if (cx > rx + rw){
-            testX = rx + rw;     // right edge
+        if (circle_x_pos < rec_x_pos) {
+            closest_x = rec_x_pos;        // compare to left edge
+        } else if (circle_x_pos > rec_x_pos + rec_width){
+            closest_x = rec_x_pos + rec_width;     // right edge
         }
 
-        if (cy < ry) {
-            testY = ry;        // bottom edge
-        } else if (cy > ry + rh){
-            testY = ry + rh;     // top edge
+        if (circle_y_pos < rec_y_pos) {
+            closest_y = rec_y_pos;        // bottom edge
+        } else if (circle_y_pos > rec_y_pos + rec_height){
+            closest_y = rec_y_pos + rec_height;     // top edge
         }
 
         // get distance from the closest edges
-        const distX = cx - testX;
-        const distY = cy - testY;
+        const distX = circle_x_pos - closest_x;
+        const distY = circle_y_pos - closest_y;
         const distance = Math.sqrt( (distX * distX) + (distY * distY) );
-        //const myObj = { pipey : testY,pipex : testX, birdy : cy };
-        //console.log(myObj);
 
         // if the distance is less than the radius, collision!
-        return distance <= radius;
+        return distance <= circle_radius;
     }
 
     draw_ground(context, program_state, model_transform) {
