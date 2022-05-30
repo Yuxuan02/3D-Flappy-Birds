@@ -65,6 +65,10 @@ export class Bird extends Scene {
         this.game_start = false;
         this.elapsed_time_before_game_start = 0;
         this.game_speed = 4;
+        this.sideview = true;
+        this.sideview_cam_pos = Mat4.translation(0, -12, -32).times(Mat4.rotation(Math.PI/2,0, 1, 0));
+        this.back_cam_pos = Mat4.translation(0, -15, -26).times(Mat4.rotation(Math.PI,0, 1, 0));
+                                
     }
 
     make_control_panel() {
@@ -75,6 +79,10 @@ export class Bird extends Scene {
             while (this.angle > -MAX_ANGLE) {
                 this.angle -= DELTA_ANGLE;
             }
+        });
+        this.new_line();
+        this.key_triggered_button("Change camera", ["c"], ()=> {
+            this.sideview = !this.sideview;
         });
     }
 
@@ -186,7 +194,7 @@ export class Bird extends Scene {
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
-            program_state.set_camera(Mat4.translation(0, -12, -32).times(Mat4.rotation(Math.PI/2,0, 1, 0)));
+            program_state.set_camera(this.sideview_cam_pos);
         }
         const matrix_transform = Mat4.identity();
         const light_position = vec4(0, 5, 5, 1);
@@ -195,7 +203,6 @@ export class Bird extends Scene {
             Math.PI / 4, context.width / context.height, 1, 100);
         const t = this.t = program_state.animation_time / 1000;
         const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
-
 
         this.elapsed_time_before_game_start = this.game_start? this.elapsed_time_before_game_start:t; //keep track of the time before user begin to play
 
@@ -209,5 +216,18 @@ export class Bird extends Scene {
         const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
         const starting_pipe_model_transform = matrix_transform.times(Mat4.translation(0, 10, pipe_pos));
         this.draw_all_pipe(context,program_state, starting_pipe_model_transform);
+
+        const blending_factor = 0.1;
+        if (!this.sideview) {
+            // change to back cam position
+            const desired = this.back_cam_pos;
+            const transition = desired.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, blending_factor));
+            program_state.set_camera(transition);
+        } else {
+            // change to side view
+            const desired = this.sideview_cam_pos;
+            const transition = desired.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, blending_factor));
+            program_state.set_camera(transition);
+        }
     }
 }
