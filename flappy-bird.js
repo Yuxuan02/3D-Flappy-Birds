@@ -67,7 +67,7 @@ export class Bird extends Scene {
         this.y = 0;
         this.initial_v_y = 4;
         this.angle = 0;
-        this.pipe_num = 10;
+        this.pipe_num = 5;
         this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 6) + 2) //return a array of lenth 5 filled by random integer from 2 to 7);
         this.pipe_gap = 20; //gap between top and bottom pipe
         this.pipe_distance = 10; //distance between 2 pipe
@@ -258,11 +258,6 @@ export class Bird extends Scene {
 
         //draw background
         this.shapes.square.draw(context, program_state, Mat4.translation(15, 48 - this.y, -5 * t % 50 + 25).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)).times(Mat4.scale(65, 65, 1)), this.materials.background);
-        
-        this.starting_distance = 10; //the distance between first pipe and the bird
-        const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
-        const starting_pipe_model_transform = matrix_transform.times(Mat4.translation(0, 10, pipe_pos));
-        this.draw_all_pipe(context,program_state, starting_pipe_model_transform);
 
         const blending_factor = 0.1;
         if (!this.sideview) {
