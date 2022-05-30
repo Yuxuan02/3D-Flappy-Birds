@@ -24,27 +24,16 @@ class Cube extends Shape {
     }
 }
 
-export class Test_Data {
-    // **Test_Data** pre-loads some Shapes and Textures that other Scenes can borrow.
+export class BackgroundSence {
+    // pre-loads some Shapes and Textures that other Scenes can borrow.
     constructor() {
         this.textures = {
             background: new Texture("assets/background.jpg"),
-            //earth: new Texture("assets/earth.gif"),
             stars: new Texture("assets/stars.png"),
-            //text: new Texture("assets/text.png"),
             grass: new Texture("assets/grass.jpg"),
-        }
+        };
         this.shapes = {
-            //donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
-            //cone: new defs.Closed_Cone(4, 10, [[0, 2], [0, 1]]),
-            //capped: new defs.Capped_Cylinder(4, 12, [[0, 2], [0, 1]]),
-            //ball: new defs.Subdivision_Sphere(3, [[0, 1], [0, 1]]),
-            //cube: new defs.Cube(),
-            //prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
-            //gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
-            //donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
             cube: new Cube(),
-            //sun: new defs.Subdivision_Sphere(4),
         };
     }
 }
@@ -53,7 +42,7 @@ export class Bird extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
-        this.data = new Test_Data();
+        this.data = new BackgroundSence();
         this.shapes = Object.assign({}, this.data.shapes);
         this.shapes.square = new defs.Square();
         const shader = new defs.Fake_Bump_Map(1);
@@ -159,35 +148,7 @@ export class Bird extends Scene {
         this.draw_eye(context, program_state, model_transform);
     }
 
-    isCollision(cx, cy, radius, rx, ry, rw, rh) {
-  
-        // temporary variables to set edges for testing
-        var testX = cx;
-        var testY = cy;
-        
-        // which edge is closest?
-        if (cx < rx){
-            testX = rx;  // compare to left edge
-        }else if (cx > rx+rw){
-            testX = rx+rw;     // right edge
-        } 
-        if (cy < ry){
-            testY = ry;        // top edge
-        }else if(cy > ry+rh){
-            testY = ry+rh;     // bottom edge
-        } 
 
-        // get distance from closest edges
-        var distX = cx-testX;
-        var distY = cy-testY;
-        var distance = Math.sqrt( (distX*distX) + (distY*distY) );
-        
-        // if the distance is less than the radius, collision!
-        if (distance <= radius) {
-          return true;
-        }
-        return false;
-      }
   
     draw_pipe(context, program_state, model_transform, pipe_len) {
         const pipe_body_transform = model_transform.times(Mat4.scale(1,pipe_len,1));
