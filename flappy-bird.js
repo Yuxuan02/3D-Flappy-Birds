@@ -263,7 +263,7 @@ export class Bird extends Scene {
         const starting_pipe_model_transform2 = model_transform.times(Mat4.translation(0, 10, pipe_pos2));
         this.draw_all_pipe(context, program_state, starting_pipe_model_transform2);
 
-        if(this.game_start && (t - this.elapsed_time_before_game_start) * this.game_speed / this.pipe_distance > 5){
+        if (this.game_start && (t - this.elapsed_time_before_game_start) * this.game_speed / this.pipe_distance > 5) {
             const starting_pipe_model_transform3 = model_transform.times(Mat4.translation(0, 10, pipe_pos3));
             this.draw_all_pipe(context, program_state, starting_pipe_model_transform3);
         }
