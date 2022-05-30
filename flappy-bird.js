@@ -25,41 +25,19 @@ class Cube extends Shape {
     }
 }
 
-export class Test_Data {
-    // **Test_Data** pre-loads some Shapes and Textures that other Scenes can borrow.
-    constructor() {
-        this.textures = {
-            rgb: new Texture("assets/background.jpg"),
-            earth: new Texture("assets/earth.gif"),
-            stars: new Texture("assets/stars.png"),
-            text: new Texture("assets/text.png"),
-        }
-        this.shapes = {
-            donut: new defs.Torus(15, 15, [[0, 2], [0, 1]]),
-            cone: new defs.Closed_Cone(4, 10, [[0, 2], [0, 1]]),
-            capped: new defs.Capped_Cylinder(4, 12, [[0, 2], [0, 1]]),
-            ball: new defs.Subdivision_Sphere(3, [[0, 1], [0, 1]]),
-            cube: new defs.Cube(),
-            prism: new (defs.Capped_Cylinder.prototype.make_flat_shaded_version())(10, 10, [[0, 2], [0, 1]]),
-            gem: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
-            donut2: new (defs.Torus.prototype.make_flat_shaded_version())(20, 20, [[0, 2], [0, 1]]),
-            cube: new Cube(),
-            sun: new defs.Subdivision_Sphere(4),
-        };
-    }
-}
-
 export class Bird extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
-        this.data = new Test_Data();
-        this.shapes = Object.assign({}, this.data.shapes);
-        this.shapes.square = new defs.Square();
-        const shader = new defs.Fake_Bump_Map(1);
+        this.shapes = {
+            cube: new Cube(),
+            sun: new defs.Subdivision_Sphere(4),
+            square: new defs.Square()
+        };
 
-
-        // At the beginning of our program, load one of each of these shape definitions onto the GPU.
+        this.textures = {
+            rgb: new Texture("assets/background.jpg"),
+        }
 
         // *** Materials
         this.materials = {
@@ -75,13 +53,15 @@ export class Bird extends Scene {
                 {
                     ambient: 1,
                     diffusivity: 0,
-                }
-            ),
+                }),
+            background: new Material(
+                new defs.Fake_Bump_Map(1), {
+                    color: color(.4, .8, .4, 1),
+                    ambient: .4,
+                    texture: this.textures.rgb
+                })
         }
-        this.material = new Material(shader, {
-            color: color(.4, .8, .4, 1),
-            ambient: .4, texture: this.data.textures.stars
-        })
+
         this.click_time = 0;
         this.base_y = 0;
         this.y = 0;
@@ -159,36 +139,6 @@ export class Bird extends Scene {
         this.draw_eye(context, program_state, model_transform);
     }
 
-    isCollision(cx, cy, radius, rx, ry, rw, rh) {
-
-        // temporary variables to set edges for testing
-        var testX = cx;
-        var testY = cy;
-
-        // which edge is closest?
-        if (cx < rx) {
-            testX = rx;  // compare to left edge
-        } else if (cx > rx + rw) {
-            testX = rx + rw;     // right edge
-        }
-        if (cy < ry) {
-            testY = ry;        // top edge
-        } else if (cy > ry + rh) {
-            testY = ry + rh;     // bottom edge
-        }
-
-        // get distance from closest edges
-        var distX = cx - testX;
-        var distY = cy - testY;
-        var distance = Math.sqrt((distX * distX) + (distY * distY));
-
-        // if the distance is less than the radius, collision!
-        if (distance <= radius) {
-            return true;
-        }
-        return false;
-    }
-
     draw_pipe(context, program_state, model_transform, pipe_len) {
         const pipe_body_transform = model_transform.times(Mat4.scale(1, pipe_len, 1));
         const green = hex_color("#528A2C");
@@ -241,6 +191,32 @@ export class Bird extends Scene {
         }
     }
 
+    draw_three_sets_of_pipe(context, program_state, model_transform, t){
+        // draw three sets of pipes alternatively to avoid gap at render position change
+
+        const game_elapsed_time = t - this.elapsed_time_before_game_start
+        const pipe_set_length = this.pipe_distance * this.pipe_num
+
+        // if the game has started, pipe set 1 position is calculated, else, it will be the starting_distance
+        const pipe_pos1 = this.game_start ?
+            (this.starting_distance - game_elapsed_time * this.game_speed) % pipe_set_length
+            : this.starting_distance;
+
+        const pipe_pos2 = pipe_pos1 + this.pipe_distance * this.pipe_num;
+        const pipe_pos3 = pipe_pos1 - this.pipe_distance * this.pipe_num;
+
+        const starting_pipe_model_transform1 = model_transform.times(Mat4.translation(0, 10, pipe_pos1));
+        this.draw_all_pipe(context, program_state, starting_pipe_model_transform1);
+
+        const starting_pipe_model_transform2 = model_transform.times(Mat4.translation(0, 10, pipe_pos2));
+        this.draw_all_pipe(context, program_state, starting_pipe_model_transform2);
+
+        if(this.game_start && (t - this.elapsed_time_before_game_start) * this.game_speed / this.pipe_distance > 5){
+            const starting_pipe_model_transform3 = model_transform.times(Mat4.translation(0, 10, pipe_pos3));
+            this.draw_all_pipe(context, program_state, starting_pipe_model_transform3);
+        }
+    }
+
     display(context, program_state) {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
@@ -266,27 +242,10 @@ export class Bird extends Scene {
             .times(Mat4.rotation(this.angle, 1, 0, 0));
         this.draw_bird(context, program_state, model_transform);
 
-
-        // draw three sets of pipes alternatively to avoid gap at render position change
-        const pipe_pos1 = this.game_start ?
-            (this.starting_distance - (t - this.elapsed_time_before_game_start) * this.game_speed) % (this.pipe_distance * this.pipe_num)
-            : this.starting_distance;
-
-        const pipe_pos2 = pipe_pos1 + this.pipe_distance * this.pipe_num;
-        const pipe_pos3 = pipe_pos1 - this.pipe_distance * this.pipe_num;
-
-        const starting_pipe_model_transform1 = matrix_transform.times(Mat4.translation(0, 10, pipe_pos1));
-        this.draw_all_pipe(context, program_state, starting_pipe_model_transform1);
-
-        const starting_pipe_model_transform2 = matrix_transform.times(Mat4.translation(0, 10, pipe_pos2));
-        this.draw_all_pipe(context, program_state, starting_pipe_model_transform2);
-
-        if(this.game_start && (t - this.elapsed_time_before_game_start) * this.game_speed / this.pipe_distance > 5){
-            const starting_pipe_model_transform3 = matrix_transform.times(Mat4.translation(0, 10, pipe_pos3));
-            this.draw_all_pipe(context, program_state, starting_pipe_model_transform3);
-        }
+        // draw three sets of pipes, one before the bird, one after the bird, and one with the bird
+        this.draw_three_sets_of_pipe(context, program_state, matrix_transform, t);
 
         //draw background
-        this.shapes.square.draw(context, program_state, Mat4.translation(15, 48 - this.y, -5 * t % 50 + 25).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)).times(Mat4.scale(65, 65, 1)), this.material.override(this.data.textures.rgb));
+        this.shapes.square.draw(context, program_state, Mat4.translation(15, 48 - this.y, -5 * t % 50 + 25).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)).times(Mat4.scale(65, 65, 1)), this.materials.background);
     }
 }
