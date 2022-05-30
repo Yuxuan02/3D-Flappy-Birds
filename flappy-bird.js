@@ -60,6 +60,7 @@ export class Bird extends Scene {
                     color: color(.4, .8, .4, 1),
                     ambient: .4,
                     texture: this.textures.rgb
+
                 }),
             game_end: new Material(
                 new defs.Fake_Bump_Map(1), {
@@ -75,6 +76,7 @@ export class Bird extends Scene {
         this.initial_v_y = 4;
         this.angle = 0;
         this.pipe_num = 5;
+
         this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 6) + 2) //return a array of length pipe_num filled by random integer from 2 to 7);
         this.pipe_gap = 20; //gap between top and bottom pipe
         this.pipe_distance = 10; //distance between 2 pipe
@@ -226,6 +228,7 @@ export class Bird extends Scene {
                 if(this.isCollision(top_pipe_position))
                     this.game_end = true;
             }
+
         }
     }
 
@@ -280,12 +283,12 @@ export class Bird extends Scene {
         return distance <= radius;
     }
 
+
     display(context, program_state) {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
-
             // Define the global camera and projection matrices, which are stored in program_state.
             program_state.set_camera(Mat4.translation(0, -12, -32).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)));
             program_state.set_camera(this.sideview_cam_pos);
@@ -322,6 +325,7 @@ export class Bird extends Scene {
             this.shapes.square.draw(context, program_state,Mat4.rotation(Math.PI / 2 * 3, 0, 1, 0).times(Mat4.scale(20, 20, 1)), this.materials.game_end);
         }
 
+
         const blending_factor = 0.1;
         if (!this.sideview) {
             // change to back cam position
@@ -334,6 +338,5 @@ export class Bird extends Scene {
             const transition = desired.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, blending_factor));
             program_state.set_camera(transition);
         }
-
     }
 }
