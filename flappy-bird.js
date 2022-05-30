@@ -243,9 +243,10 @@ export class Bird extends Scene {
     }
 
     draw_background(context, program_state, model_transform, t, type) {
+        // Setup constants according to whether the background is at the front, back, left, or right.
         const rotation_angle = (type === "f" || type === "b") ? Math.PI / 2 : Math.PI;
         const translation_x = (type === "f" || type === "r") ? 40 : -40;
-        const translation_z = type === "l" ? -60: ((type === "f" || type === "b") ? -5 * t % 50 + 25 : 60);
+        const translation_z = type === "r" ? 60: (type === "l" ? -60 : -5 * t % 50 + 25);
 
         const background_transform = model_transform.times(Mat4.translation(translation_x, 65 - 1 / 5 * this.y, translation_z))
                                                     .times(Mat4.rotation(rotation_angle, 0, 1, 0))
@@ -259,30 +260,6 @@ export class Bird extends Scene {
         this.draw_background(context, program_state, model_transform, t, "b");
         this.draw_background(context, program_state, model_transform, t, "l");
         this.draw_background(context, program_state, model_transform, t, "r");
-
-        // const background_front_transform = model_transform.times(Mat4.translation(40, 65 - 1 / 5 * this.y, -5 * t % 50 + 25))
-        //                                                   .times(Mat4.rotation(Math.PI / 2, 0, 1, 0))
-        //                                                   .times(Mat4.scale(85, 85, 1));
-        
-        // this.shapes.square.draw(context, program_state, background_front_transform, this.materials.background);
-
-        // const background_back_transform = model_transform.times(Mat4.translation(-40, 65 - 1 / 5 * this.y, -5 * t % 50 + 25))
-        //                                                   .times(Mat4.rotation(Math.PI / 2, 0, 1, 0))
-        //                                                   .times(Mat4.scale(85, 85, 1));
-        
-        // this.shapes.square.draw(context, program_state, background_back_transform, this.materials.background);
-
-        // const background_left_transform = model_transform.times(Mat4.translation(40, 65 - 1 / 5 * this.y, 60))
-        //                                                   .times(Mat4.rotation(Math.PI, 0, 1, 0))
-        //                                                   .times(Mat4.scale(85, 85, 1));
-
-        // this.shapes.square.draw(context, program_state, background_left_transform, this.materials.background);
-
-        // const background_right_transform = model_transform.times(Mat4.translation(-40, 65 - 1 / 5 * this.y, -60))
-        //                                                   .times(Mat4.rotation(Math.PI, 0, 1, 0))
-        //                                                   .times(Mat4.scale(85, 85, 1));
-
-        // this.shapes.square.draw(context, program_state, background_right_transform, this.materials.background);
     }
 
     display(context, program_state) {
