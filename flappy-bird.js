@@ -217,7 +217,7 @@ export class Bird extends Scene {
             this.draw_pipe(context, program_state, top_pipe_model_transform, 9 - pipe_len);
 
             //determine collision on top and bottom
-            if(bottom_pipe_model_transform[2][3] < 2 && bottom_pipe_model_transform[2][3] > -2){
+            if(bottom_pipe_model_transform[2][3] < 3 && bottom_pipe_model_transform[2][3] > -2){
                 const bottom_pipe_position = {
                     rx: bottom_pipe_model_transform[2][3] - 0.5,
                     ry: 0,
@@ -228,7 +228,7 @@ export class Bird extends Scene {
                     this.game_end = true;
             }
 
-            if(top_pipe_model_transform[2][3] < 2 && top_pipe_model_transform[2][3] > -2){
+            if(top_pipe_model_transform[2][3] < 3 && top_pipe_model_transform[2][3] > -2){
                 const top_pipe_position = {
                     rx: top_pipe_model_transform[2][3] - 0.5,
                     ry: (this.pipe_gap - 9) + pipe_len*2,
@@ -273,7 +273,7 @@ export class Bird extends Scene {
         const rx = pipe_position.rx, ry = pipe_position.ry, rw = pipe_position.rw, rh = pipe_position.rh;
 
         //bird only changes its y location
-        const cx = 0, cy = this.y, radius = 1;
+        const cx = 1.25, cy = this.y, radius = 1;
 
         // temporary variables to set edges for testing
         let testX = cx;
@@ -295,6 +295,8 @@ export class Bird extends Scene {
         const distX = cx-testX;
         const distY = cy-testY;
         const distance = Math.sqrt( (distX*distX) + (distY*distY) );
+        const myObj = { pipey : testY,pipex : testX, birdy : cy };
+        console.log(myObj);
 
         // if the distance is less than the radius, collision!
         return distance <= radius;
