@@ -295,8 +295,8 @@ export class Bird extends Scene {
         const distX = cx-testX;
         const distY = cy-testY;
         const distance = Math.sqrt( (distX*distX) + (distY*distY) );
-        const myObj = { pipey : testY,pipex : testX, birdy : cy };
-        console.log(myObj);
+        //const myObj = { pipey : testY,pipex : testX, birdy : cy };
+        //console.log(myObj);
 
         // if the distance is less than the radius, collision!
         return distance <= radius;
