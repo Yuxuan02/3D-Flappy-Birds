@@ -4,7 +4,7 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
 } = tiny;
 
-const MAX_ANGLE = Math.PI / 8;
+const MAX_ANGLE = Math.PI / 16;
 const DELTA_ANGLE = Math.PI / 64;
 
 class Cube extends Shape {
@@ -32,7 +32,7 @@ export class Bird extends Scene {
         this.shapes = {
             cube: new Cube(),
             sun: new defs.Subdivision_Sphere(4),
-            square: new defs.Square()
+            square: new defs.Square(),
         };
 
         this.textures = {
@@ -40,26 +40,36 @@ export class Bird extends Scene {
         }
 
         // *** Materials
+
+        this.textures = {
+            background: new Texture("assets/background.jpg"),
+            earth: new Texture("assets/earth.gif"),
+            stars: new Texture("assets/stars.png"),
+            text: new Texture("assets/text.png"),
+        }
+
         this.materials = {
             plastic: new Material(
                 new defs.Phong_Shader(),
                 {
-                    ambient: .4,
+                    ambient: .6,
                     diffusivity: .6,
-                    color: hex_color("#ffffff")
+                    specularity: 0,
+                    color: hex_color("#ffffff"),
                 }),
             pure_color: new Material(
                 new defs.Phong_Shader(),
                 {
                     ambient: 1,
                     diffusivity: 0,
+                    specularity: 0,
                 }),
             background: new Material(
                 new defs.Fake_Bump_Map(1), {
-                    color: color(.4, .8, .4, 1),
-                    ambient: .4,
-                    texture: this.textures.rgb
-                })
+                    color: hex_color("#000000"),
+                    ambient: 1, 
+                    texture: this.textures.background,
+                }),
         }
 
         this.click_time = 0;
@@ -76,7 +86,7 @@ export class Bird extends Scene {
         this.elapsed_time_before_game_start = 0;
         this.game_speed = 4;
         this.sideview = true;
-        this.sideview_cam_pos = Mat4.translation(0, -12, -32).times(Mat4.rotation(Math.PI/2,0, 1, 0));
+        this.sideview_cam_pos = Mat4.translation(0, -14, -36).times(Mat4.rotation(Math.PI/2,0, 1, 0));
         this.back_cam_pos = Mat4.translation(0, -15, -26).times(Mat4.rotation(Math.PI,0, 1, 0));
                                 
     }
@@ -157,7 +167,7 @@ export class Bird extends Scene {
             .times(Mat4.scale(0.9, 0.501, 0.9));
         this.draw_box(context, program_state, pipe_top_transform, green);
         this.draw_box(context, program_state, pipe_body_transform, green);
-        this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.pure_color.override({color: dark_green}));
+        this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.plastic.override({color:dark_green}));
     }
 
     /**
@@ -172,7 +182,7 @@ export class Bird extends Scene {
         // this line should be removed later.
         // this.y = dist_from_base_y + this.base_y
         this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
-        this.y = time_after_click === 0 ? 10 : this.y;
+        this.y = time_after_click === 0? 12:this.y;
     }
 
     /**
@@ -181,7 +191,7 @@ export class Bird extends Scene {
     update_angle(time_after_click) {
         const angle_rate = DELTA_ANGLE * (1 + time_after_click);
         const angle = this.angle + time_after_click * angle_rate;
-        this.angle = angle > MAX_ANGLE * 3.5 ? MAX_ANGLE * 3.5 : angle;
+        this.angle = angle > MAX_ANGLE ? MAX_ANGLE : angle;
     }
 
     draw_all_pipe(context, program_state, model_transform) {
@@ -225,6 +235,21 @@ export class Bird extends Scene {
         }
     }
 
+    draw_ground(context, program_state, model_transform) {
+        const ground_model_transform = model_transform.times(Mat4.scale(20, 1, 60))
+                                                      .times(Mat4.translation(0, -1, 0));
+        const green = hex_color("#82C963");
+        this.shapes.cube.draw(context, program_state, ground_model_transform, this.materials.pure_color.override({color: green}));
+    }
+
+    draw_background(context, program_state, model_transform, t) {
+        model_transform = model_transform.times(Mat4.translation(15, 48 - 1 / 5 * this.y, -5 * t % 50 + 25))
+                                         .times(Mat4.rotation(Math.PI / 2, 0, 1, 0))
+                                         .times(Mat4.scale(65, 65, 1));
+        
+        this.shapes.square.draw(context, program_state, model_transform, this.materials.background);
+    }
+
     display(context, program_state) {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
@@ -232,7 +257,7 @@ export class Bird extends Scene {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
           
             // Define the global camera and projection matrices, which are stored in program_state.
-            program_state.set_camera(Mat4.translation(0, -12, -32).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)));
+            program_state.set_camera(Mat4.translation(0, -14, -36).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)));
             program_state.set_camera(this.sideview_cam_pos);
         }
         const matrix_transform = Mat4.identity();
@@ -252,12 +277,11 @@ export class Bird extends Scene {
         const model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0))
             .times(Mat4.rotation(this.angle, 1, 0, 0));
         this.draw_bird(context, program_state, model_transform);
-
+        this.draw_ground(context, program_state, matrix_transform);
+        this.draw_background(context, program_state, matrix_transform, t);
+      
         // draw three sets of pipes, one before the bird, one after the bird, and one with the bird
         this.draw_three_sets_of_pipe(context, program_state, matrix_transform, t);
-
-        //draw background
-        this.shapes.square.draw(context, program_state, Mat4.translation(15, 48 - this.y, -5 * t % 50 + 25).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)).times(Mat4.scale(65, 65, 1)), this.materials.background);
 
         const blending_factor = 0.1;
         if (!this.sideview) {
