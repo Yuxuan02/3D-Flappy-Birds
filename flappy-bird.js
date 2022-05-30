@@ -216,29 +216,33 @@ export class Bird extends Scene {
                                                             .times(Mat4.rotation(Math.PI, 1, 0, 0));
             this.draw_pipe(context, program_state, top_pipe_model_transform, 9 - pipe_len);
 
-            //determine collision on top and bottom
-            if (bottom_pipe_model_transform[2][3] < 3 && bottom_pipe_model_transform[2][3] > -2) {
-                const bottom_pipe_position = {
-                    rx: bottom_pipe_model_transform[2][3] - 0.5,
-                    ry: 0,
-                    rw: 1,
-                    rh: pipe_len * 2
-                }
-                if (this.isCollision(bottom_pipe_position)) {
-                    this.game_end = true;
-                }
-            }
+            this.check_collision(top_pipe_model_transform, bottom_pipe_model_transform, pipe_len);
+        }
+    }
 
-            if (top_pipe_model_transform[2][3] < 3 && top_pipe_model_transform[2][3] > -2) {
-                const top_pipe_position = {
-                    rx: top_pipe_model_transform[2][3] - 0.5,
-                    ry: (this.pipe_gap - 9) + pipe_len * 2,
-                    rw: 1,
-                    rh: (9 - pipe_len) * 2
-                }
-                if (this.isCollision(top_pipe_position)) {
-                    this.game_end = true;
-                }
+    check_collision(top_pipe, bottom_pipe, pipe_len){
+        //determine collision on top and bottom
+        if (bottom_pipe[2][3] < 3 && bottom_pipe[2][3] > -2) {
+            const bottom_pipe_position = {
+                rx: bottom_pipe[2][3] - 0.5,
+                ry: 0,
+                rw: 1,
+                rh: pipe_len * 2
+            }
+            if (this.isCollision(bottom_pipe_position)) {
+                this.game_end = true;
+            }
+        }
+
+        if (top_pipe[2][3] < 3 && top_pipe[2][3] > -2) {
+            const top_pipe_position = {
+                rx: top_pipe[2][3] - 0.5,
+                ry: (this.pipe_gap - 9) + pipe_len * 2,
+                rw: 1,
+                rh: (9 - pipe_len) * 2
+            }
+            if (this.isCollision(top_pipe_position)) {
+                this.game_end = true;
             }
         }
     }
