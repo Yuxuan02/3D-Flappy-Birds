@@ -264,17 +264,23 @@ export class Bird extends Scene {
         const rx = pipe_position.rx, ry = pipe_position.ry, rw = pipe_position.rw, rh = pipe_position.rh;
 
         //bird only changes its y location
-        const cx = 0, cy = this.y, radius = 0.5;
+        const cx = 0, cy = this.y, radius = 1;
 
         // temporary variables to set edges for testing
         let testX = cx;
         let testY = cy;
 
         // which edge is closest?
-        if (cx < rx)         testX = rx;        // compare to left edge
-        else if (cx > rx+rw) testX = rx+rw;     // right edge
-        if (cy < ry)         testY = ry;        // bottom edge
-        else if (cy > ry+rh) testY = ry+rh;     // top edge
+        if (cx < rx){
+            testX = rx;        // compare to left edge
+        }else if (cx > rx+rw){
+            testX = rx+rw;     // right edge
+        }
+        if (cy < ry){
+            testY = ry;        // bottom edge
+        }else if (cy > ry+rh){
+            testY = ry+rh;     // top edge
+        }
 
         // get distance from the closest edges
         const distX = cx-testX;
