@@ -325,12 +325,10 @@ export class Bird extends Scene {
 
         this.elapsed_time_before_game_start = this.game_start ? this.elapsed_time_before_game_start : t; //keep track of the time before user begin to play
 
-        this.elapsed_time_before_game_start = this.game_start? this.elapsed_time_before_game_start:t; //keep track of the time before user begin to play
-
         this.update_y(t_after_click);
         this.update_angle(t_after_click);
         const model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0))
-            .times(Mat4.rotation(this.angle, 1, 0, 0));
+                                                .times(Mat4.rotation(this.angle, 1, 0, 0));
 
         if(!this.game_end){
             this.draw_bird(context, program_state, model_transform);
@@ -342,7 +340,8 @@ export class Bird extends Scene {
         }
         else{
             //draw game end scene
-            this.shapes.square.draw(context, program_state,Mat4.rotation(Math.PI / 2 * 3, 0, 1, 0).times(Mat4.scale(20, 20, 1)), this.materials.game_end);
+            program_state.set_camera(this.sideview_cam_pos);
+            this.shapes.square.draw(context, program_state, Mat4.rotation(Math.PI / 2 * 3, 0, 1, 0).times(Mat4.scale(20, 20, 1)), this.materials.game_end);
         }
 
         const blending_factor = 0.1;
