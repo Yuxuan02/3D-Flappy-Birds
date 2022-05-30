@@ -104,6 +104,15 @@ export class Bird extends Scene {
         this.key_triggered_button("Change camera", ["c"], ()=> {
             this.sideview = !this.sideview;
         });
+        this.new_line();
+        this.key_triggered_button("Restart game", ["r"], () => {
+            this.game_start = false;
+            this.game_end = false;
+            this.click_time = 0;
+            this.elapsed_time_before_game_start = 0;
+            this.angle = 0;
+            this.y = 12;
+        });
     }
 
     draw_box(context, program_state, model_transform, color) {
@@ -341,6 +350,7 @@ export class Bird extends Scene {
         else{
             //draw game end scene
             program_state.set_camera(this.sideview_cam_pos);
+            this.sideview = true;
             this.shapes.square.draw(context, program_state, Mat4.rotation(Math.PI / 2 * 3, 0, 1, 0).times(Mat4.scale(20, 20, 1)), this.materials.game_end);
         }
 
