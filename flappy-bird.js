@@ -357,7 +357,7 @@ export class Bird extends Scene {
         if(!this.game_end) {
             this.draw_bird(context, program_state, model_transform);
             this.draw_ground(context, program_state, matrix_transform);
-            this.draw_background(context, program_state, matrix_transform, t);
+            this.draw_all_backgrounds(context, program_state, matrix_transform, t);
 
             // draw three sets of pipes, one before the bird, one after the bird, and one with the bird
             this.draw_three_sets_of_pipe(context, program_state, matrix_transform, t);
