@@ -105,7 +105,7 @@ export class Bird extends Scene {
             this.sideview = !this.sideview;
         });
         this.new_line();
-        this.key_triggered_button("Restart game", ["r"], () => {
+        this.key_triggered_button("Restart game", ["n"], () => {
             this.game_start = false;
             this.game_end = false;
             this.click_time = 0;
