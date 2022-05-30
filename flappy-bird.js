@@ -1,11 +1,12 @@
 import {defs, tiny} from './examples/common.js';
 
 const {
-    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
+    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
 } = tiny;
 
 const MAX_ANGLE = Math.PI / 8;
 const DELTA_ANGLE = Math.PI / 64;
+
 class Cube extends Shape {
     constructor() {
         super("position", "normal",);
@@ -28,12 +29,16 @@ export class Bird extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
         super();
-
-        // At the beginning of our program, load one of each of these shape definitions onto the GPU.
         this.shapes = {
             cube: new Cube(),
             sun: new defs.Subdivision_Sphere(4),
+            square: new defs.Square()
         };
+
+        this.textures = {
+            rgb: new Texture("assets/background.jpg"),
+        }
+
         // *** Materials
         this.materials = {
             plastic: new Material(
@@ -48,8 +53,13 @@ export class Bird extends Scene {
                 {
                     ambient: 1,
                     diffusivity: 0,
-                }
-            ),
+                }),
+            background: new Material(
+                new defs.Fake_Bump_Map(1), {
+                    color: color(.4, .8, .4, 1),
+                    ambient: .4,
+                    texture: this.textures.rgb
+                })
         }
 
         this.click_time = 0;
@@ -57,7 +67,7 @@ export class Bird extends Scene {
         this.y = 0;
         this.initial_v_y = 4;
         this.angle = 0;
-        this.pipe_num = 100;
+        this.pipe_num = 10;
         this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 6) + 2) //return a array of lenth 5 filled by random integer from 2 to 7);
         this.pipe_gap = 20; //gap between top and bottom pipe
         this.pipe_distance = 10; //distance between 2 pipe
@@ -87,104 +97,131 @@ export class Bird extends Scene {
     }
 
     draw_box(context, program_state, model_transform, color) {
-        this.shapes.cube.draw(context, program_state, model_transform, this.materials.plastic.override({color:color}));
+        this.shapes.cube.draw(context, program_state, model_transform, this.materials.plastic.override({color: color}));
     }
 
     draw_wings(context, program_state, model_transform) {
         const left_wing = model_transform.times(Mat4.translation(-1.15, -0.4, -0.4))
-                                         .times(Mat4.scale(0.2, 0.6,0.8));
+            .times(Mat4.scale(0.2, 0.6, 0.8));
         const right_wing = model_transform.times(Mat4.translation(1.15, -0.4, -0.4))
-                                          .times(Mat4.scale(0.2, 0.6,0.8));
-        this.shapes.cube.draw(context, program_state, left_wing, this.materials.plastic.override({color:color(1,1,1,1)}));
-        this.shapes.cube.draw(context, program_state, right_wing, this.materials.plastic.override({color:color(1,1,1,1)}));
+            .times(Mat4.scale(0.2, 0.6, 0.8));
+        this.shapes.cube.draw(context, program_state, left_wing, this.materials.plastic.override({color: color(1, 1, 1, 1)}));
+        this.shapes.cube.draw(context, program_state, right_wing, this.materials.plastic.override({color: color(1, 1, 1, 1)}));
     }
 
     draw_mouth(context, program_state, model_transform) {
         const lip_color = hex_color("#FE9800");
         const upper_lip = model_transform.times(Mat4.translation(0, 0, 1))
-                                         .times(Mat4.scale(1.1, 0.2, 1)); 
+            .times(Mat4.scale(1.1, 0.2, 1));
         const lower_lip = model_transform.times(Mat4.translation(0, -0.3, 0.7))
-                                         .times(Mat4.scale(1.05, 0.2, 1)); 
-        this.shapes.cube.draw(context, program_state, upper_lip, this.materials.plastic.override({color:lip_color}));
-        this.shapes.cube.draw(context, program_state, lower_lip, this.materials.plastic.override({color:lip_color}));
+            .times(Mat4.scale(1.05, 0.2, 1));
+        this.shapes.cube.draw(context, program_state, upper_lip, this.materials.plastic.override({color: lip_color}));
+        this.shapes.cube.draw(context, program_state, lower_lip, this.materials.plastic.override({color: lip_color}));
     }
 
     draw_eye(context, program_state, model_transform) {
         const white = hex_color("#FFFFFF");
         const black = hex_color("#000000");
         // right eye
-        const right_bg_transform = model_transform.times(Mat4.translation(-0.75,0.55,0.7))
-                                                  .times(Mat4.scale(0.1,0.5,0.3));
-        const right_pupil_transform = model_transform.times(Mat4.translation(-0.8,0.6,0.7))
-                                                     .times(Mat4.scale(0.1,0.3,0.15));
-        this.shapes.cube.draw(context, program_state, right_bg_transform, this.materials.plastic.override({color:white}));
-        this.shapes.cube.draw(context, program_state, right_pupil_transform, this.materials.plastic.override({color:black}));
+        const right_bg_transform = model_transform.times(Mat4.translation(-0.75, 0.55, 0.7))
+            .times(Mat4.scale(0.1, 0.5, 0.3));
+        const right_pupil_transform = model_transform.times(Mat4.translation(-0.8, 0.6, 0.7))
+            .times(Mat4.scale(0.1, 0.3, 0.15));
+        this.shapes.cube.draw(context, program_state, right_bg_transform, this.materials.plastic.override({color: white}));
+        this.shapes.cube.draw(context, program_state, right_pupil_transform, this.materials.plastic.override({color: black}));
         // left eye
-        const left_bg_transform = model_transform.times(Mat4.translation(0.75,0.55,0.7))
-                                                 .times(Mat4.scale(0.1,0.5,0.3));
-        const left_pupil_transform = model_transform.times(Mat4.translation(0.8,0.6,0.7))
-                                                 .times(Mat4.scale(0.1,0.3,0.15)); 
-        this.shapes.cube.draw(context, program_state, left_bg_transform, this.materials.plastic.override({color:white}));
-        this.shapes.cube.draw(context, program_state, left_pupil_transform, this.materials.plastic.override({color:black}));
+        const left_bg_transform = model_transform.times(Mat4.translation(0.75, 0.55, 0.7))
+            .times(Mat4.scale(0.1, 0.5, 0.3));
+        const left_pupil_transform = model_transform.times(Mat4.translation(0.8, 0.6, 0.7))
+            .times(Mat4.scale(0.1, 0.3, 0.15));
+        this.shapes.cube.draw(context, program_state, left_bg_transform, this.materials.plastic.override({color: white}));
+        this.shapes.cube.draw(context, program_state, left_pupil_transform, this.materials.plastic.override({color: black}));
     }
 
     draw_bird(context, program_state, model_transform) {
-        const body_transform = model_transform.times(Mat4.scale(0.8,1,1.2));
+        const body_transform = model_transform.times(Mat4.scale(0.8, 1, 1.2));
         const yellow = hex_color("#F9DC35");
         this.draw_box(context, program_state, body_transform, yellow);
         this.draw_wings(context, program_state, model_transform);
         this.draw_mouth(context, program_state, model_transform);
         this.draw_eye(context, program_state, model_transform);
     }
-  
+
     draw_pipe(context, program_state, model_transform, pipe_len) {
-        const pipe_body_transform = model_transform.times(Mat4.scale(1,pipe_len,1));
+        const pipe_body_transform = model_transform.times(Mat4.scale(1, pipe_len, 1));
         const green = hex_color("#528A2C");
         const dark_green = hex_color("#142409");
-        const pipe_top_transform = model_transform.times(Mat4.translation(0,pipe_len,0))
-                                                  .times(Mat4.scale(1.2,0.5,1.2));
-        const pipe_inner_top_transform = model_transform.times(Mat4.translation(0,pipe_len,0))
-                                                        .times(Mat4.scale(0.9,0.501,0.9));
+        const pipe_top_transform = model_transform.times(Mat4.translation(0, pipe_len, 0))
+            .times(Mat4.scale(1.2, 0.5, 1.2));
+        const pipe_inner_top_transform = model_transform.times(Mat4.translation(0, pipe_len, 0))
+            .times(Mat4.scale(0.9, 0.501, 0.9));
         this.draw_box(context, program_state, pipe_top_transform, green);
         this.draw_box(context, program_state, pipe_body_transform, green);
-        this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.pure_color.override({color:dark_green}));
+        this.shapes.cube.draw(context, program_state, pipe_inner_top_transform, this.materials.pure_color.override({color: dark_green}));
     }
 
     /**
-    * update the bird's y position
-    **/
+     * update the bird's y position
+     **/
     update_y(time_after_click) {
         // If user has not clicked "up" for once, t_after_click is set to 0.
         const dist_from_base_y = this.initial_v_y * time_after_click - 0.5 * 9.8 * time_after_click * time_after_click;
-        
+
         // This line sets a minimum y position of 0 to make development easier.
         // In the actual game, once the user clicked "up", there is no such minimum y value, and
         // this line should be removed later.
         // this.y = dist_from_base_y + this.base_y
         this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
-        this.y = time_after_click === 0? 10:this.y;
+        this.y = time_after_click === 0 ? 10 : this.y;
     }
+
     /**
      * get the bird's rotation angle based on the time passed since the latest click of "up".
      * */
     update_angle(time_after_click) {
-        const angle_rate = DELTA_ANGLE * (1 + time_after_click );
+        const angle_rate = DELTA_ANGLE * (1 + time_after_click);
         const angle = this.angle + time_after_click * angle_rate;
         this.angle = angle > MAX_ANGLE * 3.5 ? MAX_ANGLE * 3.5 : angle;
     }
-    
+
     draw_all_pipe(context, program_state, model_transform) {
-        for(let i=0;i<this.pipe_num;i++){
+        for (let i = 0; i < this.pipe_num; i++) {
             const pipe_len = this.pipe_lens[i];
 
             //draw the top pipes
-            const bottom_pipe_model_transform = model_transform.times(Mat4.translation(0, pipe_len-11, i*this.pipe_distance))
-            this.draw_pipe(context,program_state, bottom_pipe_model_transform, pipe_len);
+            const bottom_pipe_model_transform = model_transform.times(Mat4.translation(0, pipe_len - 11, i * this.pipe_distance))
+            this.draw_pipe(context, program_state, bottom_pipe_model_transform, pipe_len);
 
             //draw bottom pipe
-            const top_pipe_model_transform = model_transform.times(Mat4.translation(0, this.pipe_gap - (9-pipe_len), i*this.pipe_distance))
-                                                                        .times(Mat4.rotation(Math.PI, 1,0,0));
-            this.draw_pipe(context,program_state, top_pipe_model_transform, 9 - pipe_len);
+            const top_pipe_model_transform = model_transform.times(Mat4.translation(0, this.pipe_gap - (9 - pipe_len), i * this.pipe_distance))
+                .times(Mat4.rotation(Math.PI, 1, 0, 0));
+            this.draw_pipe(context, program_state, top_pipe_model_transform, 9 - pipe_len);
+        }
+    }
+
+    draw_three_sets_of_pipe(context, program_state, model_transform, t){
+        // draw three sets of pipes alternatively to avoid gap at render position change
+
+        const game_elapsed_time = t - this.elapsed_time_before_game_start
+        const pipe_set_length = this.pipe_distance * this.pipe_num
+
+        // if the game has started, pipe set 1 position is calculated, else, it will be the starting_distance
+        const pipe_pos1 = this.game_start ?
+            (this.starting_distance - game_elapsed_time * this.game_speed) % pipe_set_length
+            : this.starting_distance;
+
+        const pipe_pos2 = pipe_pos1 + this.pipe_distance * this.pipe_num;
+        const pipe_pos3 = pipe_pos1 - this.pipe_distance * this.pipe_num;
+
+        const starting_pipe_model_transform1 = model_transform.times(Mat4.translation(0, 10, pipe_pos1));
+        this.draw_all_pipe(context, program_state, starting_pipe_model_transform1);
+
+        const starting_pipe_model_transform2 = model_transform.times(Mat4.translation(0, 10, pipe_pos2));
+        this.draw_all_pipe(context, program_state, starting_pipe_model_transform2);
+
+        if(this.game_start && (t - this.elapsed_time_before_game_start) * this.game_speed / this.pipe_distance > 5){
+            const starting_pipe_model_transform3 = model_transform.times(Mat4.translation(0, 10, pipe_pos3));
+            this.draw_all_pipe(context, program_state, starting_pipe_model_transform3);
         }
     }
 
@@ -193,7 +230,9 @@ export class Bird extends Scene {
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
+          
             // Define the global camera and projection matrices, which are stored in program_state.
+            program_state.set_camera(Mat4.translation(0, -12, -32).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)));
             program_state.set_camera(this.sideview_cam_pos);
         }
         const matrix_transform = Mat4.identity();
@@ -204,13 +243,21 @@ export class Bird extends Scene {
         const t = this.t = program_state.animation_time / 1000;
         const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
 
+        this.elapsed_time_before_game_start = this.game_start ? this.elapsed_time_before_game_start : t; //keep track of the time before user begin to play
+      
         this.elapsed_time_before_game_start = this.game_start? this.elapsed_time_before_game_start:t; //keep track of the time before user begin to play
 
         this.update_y(t_after_click);
         this.update_angle(t_after_click);
         const model_transform = matrix_transform.times(Mat4.translation(0, this.y, 0))
-                                                .times(Mat4.rotation(this.angle,1,0,0));
+            .times(Mat4.rotation(this.angle, 1, 0, 0));
         this.draw_bird(context, program_state, model_transform);
+
+        // draw three sets of pipes, one before the bird, one after the bird, and one with the bird
+        this.draw_three_sets_of_pipe(context, program_state, matrix_transform, t);
+
+        //draw background
+        this.shapes.square.draw(context, program_state, Mat4.translation(15, 48 - this.y, -5 * t % 50 + 25).times(Mat4.rotation(Math.PI / 2, 0, 1, 0)).times(Mat4.scale(65, 65, 1)), this.materials.background);
         
         this.starting_distance = 10; //the distance between first pipe and the bird
         const pipe_pos = this.game_start? this.starting_distance - (t-this.elapsed_time_before_game_start) * this.game_speed: this.starting_distance;
