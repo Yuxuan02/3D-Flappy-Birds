@@ -1,4 +1,5 @@
 import {defs, tiny} from './examples/common.js';
+import {Text_Line} from './examples/text-demo.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
@@ -33,6 +34,7 @@ export class Bird extends Scene {
             cube: new Cube(),
             sun: new defs.Subdivision_Sphere(4),
             square: new defs.Square(),
+            text: new Text_Line( 35 ),
         };
 
         this.textures = {
@@ -67,8 +69,15 @@ export class Bird extends Scene {
                 new defs.Fake_Bump_Map(1), {
                     color: hex_color("#000000"),
                     ambient: 1, diffusivity: 0.1, specularity: 0.1,
-                    texture: this.textures.lose
-                })
+                    texture: this.textures.lose,
+                }),
+            text_image: new Material(
+                new defs.Textured_Phong(1), {
+                    ambient: 1, 
+                    diffusivity: 0, 
+                    specularity: 0,
+                    texture: new Texture("assets/text.png"),
+                }),
         }
 
         this.click_time = 0;
@@ -89,6 +98,8 @@ export class Bird extends Scene {
         this.sideview_cam_pos = Mat4.translation(0, -14, -36).times(Mat4.rotation(Math.PI/2,0, 1, 0));
         this.back_cam_pos = Mat4.translation(0, -15, -26).times(Mat4.rotation(Math.PI,0, 1, 0));
         this.game_end = false;
+
+        this.score = 0;
     }
 
     make_control_panel() {
@@ -333,6 +344,19 @@ export class Bird extends Scene {
         this.draw_background(context, program_state, model_transform, t, "r");
     }
 
+    draw_score(context, program_state, model_transform) {
+        const sideview_transform = model_transform.times(Mat4.translation(-3, 25, 5))
+                                                  .times(Mat4.rotation(3 * Math.PI / 2, 0, 1, 0));
+        const backview_transform = model_transform.times(Mat4.translation(-3, 25, 5))
+                                                  .times(Matrix.of([-1, 0, 0, 0],[0, 1, 0, 0],[0, 0, 1, 0],[0, 0, 0, 1]));
+        const scoreboard_model_transform = this.sideview ? sideview_transform : backview_transform;
+
+        const score_string = "Score: " + this.score.toString();
+        this.shapes.text.set_string(score_string, context.context);
+        this.shapes.text.draw(context, program_state, scoreboard_model_transform, this.materials.text_image);        
+    }
+
+
     display(context, program_state) {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
@@ -363,6 +387,8 @@ export class Bird extends Scene {
 
             // draw three sets of pipes, one before the bird, one after the bird, and one with the bird
             this.draw_three_sets_of_pipe(context, program_state, matrix_transform, t);
+            
+            this.draw_score(context, program_state, matrix_transform);
         }
         else {
             //draw game end scene
