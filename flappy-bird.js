@@ -93,10 +93,10 @@ export class Bird extends Scene {
         this.y = 0;
         this.initial_v_y = 6;
         this.angle = 0;
-        this.pipe_num = 5;
+        this.pipe_num = 10;
         this.acceleration = 9.8;
 
-        this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 6) + 2) //return a array of length pipe_num filled by random integer from 2 to 7);
+        this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 7) + 1.5) //return a array of length pipe_num filled by random integer from 1.5 to 7.5);
         this.pipe_gap = 20; //gap between top and bottom pipe
         this.pipe_distance = 10; //distance between 2 pipe
         this.starting_distance = 10; //the distance between first pipe and the bird
