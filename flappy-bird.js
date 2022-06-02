@@ -37,6 +37,7 @@ export class Bird extends Scene {
 
         this.textures = {
             background: new Texture("assets/background.jpg"),
+            background_night: new Texture("assets/background_night.jpg"),
             lose: new Texture("assets/lose.jpg"),
         }
 
@@ -62,6 +63,12 @@ export class Bird extends Scene {
                     color: hex_color("#000000"),
                     ambient: 1, 
                     texture: this.textures.background,
+                }),
+            background_night: new Material(
+                new defs.Fake_Bump_Map(1), {
+                    color: hex_color("#000000"),
+                    ambient: 1, 
+                    texture: this.textures.background_night,
                 }),
             game_end: new Material(
                 new defs.Fake_Bump_Map(1), {
@@ -89,6 +96,7 @@ export class Bird extends Scene {
         this.sideview_cam_pos = Mat4.translation(0, -14, -36).times(Mat4.rotation(Math.PI/2,0, 1, 0));
         this.back_cam_pos = Mat4.translation(0, -15, -26).times(Mat4.rotation(Math.PI,0, 1, 0));
         this.game_end = false;
+        this.night_theme = false;
     }
 
     make_control_panel() {
@@ -112,6 +120,10 @@ export class Bird extends Scene {
             this.elapsed_time_before_game_start = 0;
             this.angle = 0;
             this.y = 12;
+        });
+        this.new_line();
+        this.key_triggered_button("Change theme", ["b"], ()=> {
+            this.night_theme = !this.night_theme;
         });
     }
 
@@ -216,11 +228,11 @@ export class Bird extends Scene {
                                                             .times(Mat4.rotation(Math.PI, 1, 0, 0));
             this.draw_pipe(context, program_state, top_pipe_model_transform, 9 - pipe_len);
 
-            this.check_collision(top_pipe_model_transform, bottom_pipe_model_transform, pipe_len);
+            this.check_bird_collision(top_pipe_model_transform, bottom_pipe_model_transform, pipe_len);
         }
     }
 
-    check_collision(top_pipe, bottom_pipe, pipe_len){
+    check_bird_collision(top_pipe, bottom_pipe, pipe_len){
         //determine collision on top and bottom
         if (bottom_pipe[2][3] < 3 && bottom_pipe[2][3] > -2) {
             const bottom_pipe_position = {
@@ -229,7 +241,7 @@ export class Bird extends Scene {
                 rec_width: 1,
                 rec_height: pipe_len * 2
             }
-            if (this.isCollision(bottom_pipe_position)) {
+            if (this.in_collision_with(bottom_pipe_position)) {
                 this.game_end = true;
             }
         }
@@ -241,7 +253,7 @@ export class Bird extends Scene {
                 rec_width: 1,
                 rec_height: (9 - pipe_len) * 2
             }
-            if (this.isCollision(top_pipe_position)) {
+            if (this.in_collision_with(top_pipe_position)) {
                 this.game_end = true;
             }
         }
@@ -274,7 +286,7 @@ export class Bird extends Scene {
     }
 
 
-    isCollision(pipe_position) {
+    in_collision_with(pipe_position) {
         const { rec_x_pos, rec_y_pos, rec_width, rec_height } = pipe_position
 
         //bird only changes its y location
@@ -309,7 +321,7 @@ export class Bird extends Scene {
     draw_ground(context, program_state, model_transform) {
         const ground_model_transform = model_transform.times(Mat4.scale(40, 1, 60))
                                                       .times(Mat4.translation(0, -1, 0));
-        const green = hex_color("#82C963");
+        const green = hex_color(this.night_theme ? "53873d" : "#82C963");
         this.shapes.cube.draw(context, program_state, ground_model_transform, this.materials.pure_color.override({color: green}));
     }
 
@@ -322,8 +334,14 @@ export class Bird extends Scene {
         const background_transform = model_transform.times(Mat4.translation(translation_x, 65 - 1 / 5 * this.y, translation_z))
                                                     .times(Mat4.rotation(rotation_angle, 0, 1, 0))
                                                     .times(Mat4.scale(85, 85, 1));
-        this.shapes.square.draw(context, program_state, background_transform, this.materials.background);
-
+        this.shapes.square.draw(
+            context,
+            program_state,
+            background_transform,
+            this.night_theme ? 
+            this.materials.background_night :
+            this.materials.background,
+        );
     }
 
     draw_all_backgrounds(context, program_state, model_transform, t) {
@@ -344,7 +362,10 @@ export class Bird extends Scene {
         }
         const matrix_transform = Mat4.identity();
         const light_position = vec4(0, 5, 5, 1);
-        program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
+        const light_intensity = this.night_theme ? 100 : 1000;
+        program_state.lights = [
+            new Light(light_position, color(1, 1, 1, 1), light_intensity)
+        ];
         program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 1, 100);
         const t = this.t = program_state.animation_time / 1000;
         const t_after_click = this.click_time === 0 ? 0 : t - this.click_time;
