@@ -377,7 +377,7 @@ export class Bird extends Scene {
         // Setup constants according to whether the background is at the front, back, left, or right.
         const rotation_angle = (type === "f" || type === "b") ? Math.PI / 2 : Math.PI;
         const translation_x = (type === "f" || type === "r") ? 40 : -40;
-        const translation_z = type === "r" ? 60: (type === "l" ? -60 : -5 * t % 50 + 25);
+        const translation_z = type === "r" ? 60: (type === "l" ? -60 : Math.sin(-t/3)*25);
 
         const background_transform = model_transform.times(Mat4.translation(translation_x, 65 - 1 / 5 * this.y, translation_z))
                                                     .times(Mat4.rotation(rotation_angle, 0, 1, 0))
