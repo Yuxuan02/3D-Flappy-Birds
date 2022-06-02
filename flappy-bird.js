@@ -39,6 +39,7 @@ export class Bird extends Scene {
 
         this.textures = {
             background: new Texture("assets/background.jpg"),
+            background_night: new Texture("assets/background_night.jpg"),
             lose: new Texture("assets/lose.jpg"),
         }
 
@@ -81,6 +82,7 @@ export class Bird extends Scene {
         }
 
         this.click_time = 0;
+        this.game_start_time = 0;
         this.base_y = 0;
         this.y = 0;
         this.initial_v_y = 4;
@@ -106,6 +108,10 @@ export class Bird extends Scene {
         this.key_triggered_button("Up", ["u"], () => {
             this.click_time = this.t;
             this.base_y = this.y;
+            if (!this.game_start) {
+                this.game_start_time = this.t + this.starting_distance / this.game_speed;
+                console.log(this.game_start_time);
+            }
             this.game_start = true;
             while (this.angle > -MAX_ANGLE) {
                 this.angle -= DELTA_ANGLE;
@@ -350,6 +356,10 @@ export class Bird extends Scene {
         const backview_transform = model_transform.times(Mat4.translation(-3, 25, 5))
                                                   .times(Matrix.of([-1, 0, 0, 0],[0, 1, 0, 0],[0, 0, 1, 0],[0, 0, 0, 1]));
         const scoreboard_model_transform = this.sideview ? sideview_transform : backview_transform;
+
+        const time_per_pipe = this.pipe_distance / this.game_speed;
+        const raw_score = this.game_start ? Math.ceil((this.t - this.game_start_time) / time_per_pipe) : 0;
+        this.score = raw_score > 0 ? raw_score : 0;
 
         const score_string = "Score: " + this.score.toString();
         this.shapes.text.set_string(score_string, context.context);
