@@ -1,4 +1,5 @@
 import {defs, tiny} from './examples/common.js';
+import {Text_Line} from './examples/text-demo.js';
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
@@ -33,6 +34,7 @@ export class Bird extends Scene {
             cube: new Cube(),
             sun: new defs.Subdivision_Sphere(4),
             square: new defs.Square(),
+            text: new Text_Line( 35 ),
         };
 
         this.textures = {
@@ -74,28 +76,39 @@ export class Bird extends Scene {
                 new defs.Fake_Bump_Map(1), {
                     color: hex_color("#000000"),
                     ambient: 1, diffusivity: 0.1, specularity: 0.1,
-                    texture: this.textures.lose
-                })
+                    texture: this.textures.lose,
+                }),
+            text_image: new Material(
+                new defs.Textured_Phong(1), {
+                    ambient: 1, 
+                    diffusivity: 0, 
+                    specularity: 0,
+                    texture: new Texture("assets/text.png"),
+                }),
         }
 
         this.click_time = 0;
+        this.game_start_time = 0;
         this.base_y = 0;
         this.y = 0;
-        this.initial_v_y = 4;
+        this.initial_v_y = 6;
         this.angle = 0;
-        this.pipe_num = 5;
+        this.pipe_num = 10;
+        this.acceleration = 9.8;
 
-        this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 6) + 2) //return a array of length pipe_num filled by random integer from 2 to 7);
+        this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 7) + 1.5) //return a array of length pipe_num filled by random integer from 1.5 to 7.5);
         this.pipe_gap = 20; //gap between top and bottom pipe
         this.pipe_distance = 10; //distance between 2 pipe
         this.starting_distance = 10; //the distance between first pipe and the bird
         this.game_start = false;
         this.elapsed_time_before_game_start = 0;
-        this.game_speed = 4;
+        this.game_speed = 5;
         this.sideview = true;
         this.sideview_cam_pos = Mat4.translation(0, -14, -36).times(Mat4.rotation(Math.PI/2,0, 1, 0));
         this.back_cam_pos = Mat4.translation(0, -15, -26).times(Mat4.rotation(Math.PI,0, 1, 0));
         this.game_end = false;
+        this.score = 0;
+        this.highest_score = 0;
         this.night_theme = false;
     }
 
@@ -103,16 +116,18 @@ export class Bird extends Scene {
         this.key_triggered_button("Up", ["u"], () => {
             this.click_time = this.t;
             this.base_y = this.y;
+            if (!this.game_start) {
+                this.game_start_time = this.t + this.starting_distance / this.game_speed;
+                console.log(this.game_start_time);
+            }
             this.game_start = true;
             while (this.angle > -MAX_ANGLE) {
                 this.angle -= DELTA_ANGLE;
             }
         });
-        this.new_line();
         this.key_triggered_button("Change camera", ["c"], ()=> {
             this.sideview = !this.sideview;
         });
-        this.new_line();
         this.key_triggered_button("Restart game", ["n"], () => {
             this.game_start = false;
             this.game_end = false;
@@ -122,6 +137,39 @@ export class Bird extends Scene {
             this.y = 12;
         });
         this.new_line();
+
+        const acceleration_controls = this.control_panel.appendChild(document.createElement("span"));
+        this.key_triggered_button("-", ["g"], () => {
+            if (!this.game_start) {
+                this.acceleration = this.acceleration > 6 ? this.acceleration - 2.0 : 5.8;            
+            }
+        }, undefined, undefined, undefined, acceleration_controls);
+        this.live_string(box => {
+            box.textContent = "Acceleration (Fixed after game start): " + this.acceleration.toFixed(1);
+        }, acceleration_controls);
+        this.key_triggered_button("+", ["h"], () => {
+            if (!this.game_start) {
+                this.acceleration = this.acceleration < 11 ? this.acceleration + 2.0 : 11.8;            
+            }
+        }, undefined, undefined, undefined, acceleration_controls);
+        
+        this.new_line();
+
+        const initial_v_y_controls = this.control_panel.appendChild(document.createElement("span"));
+        this.key_triggered_button("-", ["j"], () => {
+            if (!this.game_start) {
+                this.initial_v_y = this.initial_v_y > 4 ? this.initial_v_y - 1 : 4;            
+            }
+        }, undefined, undefined, undefined, initial_v_y_controls);
+        this.live_string(box => {
+            box.textContent = "Up speed (Fixed after game start): " + this.initial_v_y;
+        }, initial_v_y_controls);
+        this.key_triggered_button("+", ["k"], () => {
+            if (!this.game_start) {
+                this.initial_v_y = this.initial_v_y < 7 ? this.initial_v_y + 1 : 7;            
+            }
+        }, undefined, undefined, undefined, initial_v_y_controls);
+      
         this.key_triggered_button("Change theme", ["b"], ()=> {
             this.night_theme = !this.night_theme;
         });
@@ -196,7 +244,7 @@ export class Bird extends Scene {
      **/
     update_y(time_after_click) {
         // If user has not clicked "up" for once, t_after_click is set to 0.
-        const dist_from_base_y = this.initial_v_y * time_after_click - 0.5 * 9.8 * time_after_click * time_after_click;
+        const dist_from_base_y = this.initial_v_y * time_after_click - 0.5 * this.acceleration * time_after_click * time_after_click;
 
         // This line sets a minimum y position of 0 to make development easier.
         // In the actual game, once the user clicked "up", there is no such minimum y value, and
@@ -329,7 +377,7 @@ export class Bird extends Scene {
         // Setup constants according to whether the background is at the front, back, left, or right.
         const rotation_angle = (type === "f" || type === "b") ? Math.PI / 2 : Math.PI;
         const translation_x = (type === "f" || type === "r") ? 40 : -40;
-        const translation_z = type === "r" ? 60: (type === "l" ? -60 : -5 * t % 50 + 25);
+        const translation_z = type === "r" ? 60: (type === "l" ? -60 : Math.sin(-t/3)*25);
 
         const background_transform = model_transform.times(Mat4.translation(translation_x, 65 - 1 / 5 * this.y, translation_z))
                                                     .times(Mat4.rotation(rotation_angle, 0, 1, 0))
@@ -350,6 +398,24 @@ export class Bird extends Scene {
         this.draw_background(context, program_state, model_transform, t, "l");
         this.draw_background(context, program_state, model_transform, t, "r");
     }
+
+    draw_score(context, program_state, model_transform) {
+        const sideview_transform = model_transform.times(Mat4.translation(-3, 25, 5))
+                                                  .times(Mat4.rotation(3 * Math.PI / 2, 0, 1, 0));
+        const backview_transform = model_transform.times(Mat4.translation(-3, 25, 5))
+                                                  .times(Matrix.of([-1, 0, 0, 0],[0, 1, 0, 0],[0, 0, 1, 0],[0, 0, 0, 1]));
+        const scoreboard_model_transform = this.sideview ? sideview_transform : backview_transform;
+
+        const time_per_pipe = this.pipe_distance / this.game_speed;
+        const raw_score = this.game_start ? Math.ceil((this.t - this.game_start_time) / time_per_pipe) : 0;
+        this.score = raw_score > 0 ? raw_score : 0;
+        this.highest_score = Math.max(this.score, this.highest_score);
+
+        const score_string = "Score: " + this.score.toString();
+        this.shapes.text.set_string(score_string, context.context);
+        this.shapes.text.draw(context, program_state, scoreboard_model_transform, this.materials.text_image);        
+    }
+
 
     display(context, program_state) {
         // display():  Called once per frame of animation.
@@ -384,14 +450,29 @@ export class Bird extends Scene {
 
             // draw three sets of pipes, one before the bird, one after the bird, and one with the bird
             this.draw_three_sets_of_pipe(context, program_state, matrix_transform, t);
+            
+            this.draw_score(context, program_state, matrix_transform);
         }
         else {
             //draw game end scene
             program_state.set_camera(this.sideview_cam_pos);
             this.sideview = true;
-            this.shapes.square.draw(context, program_state, Mat4.rotation(Math.PI / 2 * 3, 0, 1, 0).times(Mat4.scale(20, 20, 1)), this.materials.game_end);
-        }
+            this.shapes.square.draw(context, program_state, matrix_transform.times(Mat4.translation(0, 6, 0))
+                                                                            .times(Mat4.rotation(Math.PI / 2 * 3, 0, 1, 0))
+                                                                            .times(Mat4.scale(28, 28, 1)), this.materials.game_end);
 
+            const highscore_model_transform = matrix_transform.times(Mat4.translation(-3, 9, -12))
+                                                              .times(Mat4.rotation(3 * Math.PI / 2, 0, 1, 0));
+            const score_string = "Highest score: " + this.highest_score.toString();
+            this.shapes.text.set_string(score_string, context.context);
+            this.shapes.text.draw(context, program_state, highscore_model_transform, this.materials.text_image);  
+            
+            const replay_model_transform = matrix_transform.times(Mat4.translation(-3, 6, -10))
+                                                           .times(Mat4.rotation(3 * Math.PI / 2, 0, 1, 0));
+            const replay_string = "Replay with \"n\"";
+            this.shapes.text.set_string(replay_string, context.context);
+            this.shapes.text.draw(context, program_state, replay_model_transform, this.materials.text_image);  
+        }
 
         const blending_factor = 0.1;
         if (!this.sideview) {
