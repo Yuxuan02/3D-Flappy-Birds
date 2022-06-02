@@ -457,17 +457,17 @@ export class Bird extends Scene {
             //draw game end scene
             program_state.set_camera(this.sideview_cam_pos);
             this.sideview = true;
-            this.shapes.square.draw(context, program_state, matrix_transform.times(Mat4.translation(0, 7, 0))
+            this.shapes.square.draw(context, program_state, matrix_transform.times(Mat4.translation(0, 6, 0))
                                                                             .times(Mat4.rotation(Math.PI / 2 * 3, 0, 1, 0))
-                                                                            .times(Mat4.scale(20, 20, 1)), this.materials.game_end);
+                                                                            .times(Mat4.scale(28, 28, 1)), this.materials.game_end);
 
-            const highscore_model_transform = matrix_transform.times(Mat4.translation(-3, 12, -12))
+            const highscore_model_transform = matrix_transform.times(Mat4.translation(-3, 9, -12))
                                                               .times(Mat4.rotation(3 * Math.PI / 2, 0, 1, 0));
             const score_string = "Highest score: " + this.highest_score.toString();
             this.shapes.text.set_string(score_string, context.context);
             this.shapes.text.draw(context, program_state, highscore_model_transform, this.materials.text_image);  
             
-            const replay_model_transform = matrix_transform.times(Mat4.translation(-3, 8, -10))
+            const replay_model_transform = matrix_transform.times(Mat4.translation(-3, 6, -10))
                                                            .times(Mat4.rotation(3 * Math.PI / 2, 0, 1, 0));
             const replay_string = "Replay with \"n\"";
             this.shapes.text.set_string(replay_string, context.context);
