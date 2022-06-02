@@ -85,9 +85,10 @@ export class Bird extends Scene {
         this.game_start_time = 0;
         this.base_y = 0;
         this.y = 0;
-        this.initial_v_y = 4;
+        this.initial_v_y = 6;
         this.angle = 0;
         this.pipe_num = 5;
+        this.acceleration = 9.8;
 
         this.pipe_lens = Array.from({length: this.pipe_num}, () => Math.floor(Math.random() * 6) + 2) //return a array of length pipe_num filled by random integer from 2 to 7);
         this.pipe_gap = 20; //gap between top and bottom pipe
@@ -95,13 +96,14 @@ export class Bird extends Scene {
         this.starting_distance = 10; //the distance between first pipe and the bird
         this.game_start = false;
         this.elapsed_time_before_game_start = 0;
-        this.game_speed = 4;
+        this.game_speed = 5;
         this.sideview = true;
         this.sideview_cam_pos = Mat4.translation(0, -14, -36).times(Mat4.rotation(Math.PI/2,0, 1, 0));
         this.back_cam_pos = Mat4.translation(0, -15, -26).times(Mat4.rotation(Math.PI,0, 1, 0));
         this.game_end = false;
 
         this.score = 0;
+        this.highest_score = 0;
     }
 
     make_control_panel() {
@@ -117,11 +119,9 @@ export class Bird extends Scene {
                 this.angle -= DELTA_ANGLE;
             }
         });
-        this.new_line();
         this.key_triggered_button("Change camera", ["c"], ()=> {
             this.sideview = !this.sideview;
         });
-        this.new_line();
         this.key_triggered_button("Restart game", ["n"], () => {
             this.game_start = false;
             this.game_end = false;
@@ -130,6 +130,40 @@ export class Bird extends Scene {
             this.angle = 0;
             this.y = 12;
         });
+        this.new_line();
+
+        const acceleration_controls = this.control_panel.appendChild(document.createElement("span"));
+        this.key_triggered_button("-", ["g"], () => {
+            if (!this.game_start) {
+                this.acceleration = this.acceleration > 6 ? this.acceleration - 2.0 : 5.8;            
+            }
+        }, undefined, undefined, undefined, acceleration_controls);
+        this.live_string(box => {
+            box.textContent = "Acceleration (Fixed after game start): " + this.acceleration.toFixed(1);
+        }, acceleration_controls);
+        this.key_triggered_button("+", ["h"], () => {
+            if (!this.game_start) {
+                this.acceleration = this.acceleration < 11 ? this.acceleration + 2.0 : 11.8;            
+            }
+        }, undefined, undefined, undefined, acceleration_controls);
+        
+        this.new_line();
+
+        const initial_v_y_controls = this.control_panel.appendChild(document.createElement("span"));
+        this.key_triggered_button("-", ["j"], () => {
+            if (!this.game_start) {
+                this.initial_v_y = this.initial_v_y > 4 ? this.initial_v_y - 1 : 4;            
+            }
+        }, undefined, undefined, undefined, initial_v_y_controls);
+        this.live_string(box => {
+            box.textContent = "Up speed (Fixed after game start): " + this.initial_v_y;
+        }, initial_v_y_controls);
+        this.key_triggered_button("+", ["k"], () => {
+            if (!this.game_start) {
+                this.initial_v_y = this.initial_v_y < 7 ? this.initial_v_y + 1 : 7;            
+            }
+        }, undefined, undefined, undefined, initial_v_y_controls);
+
     }
 
     draw_box(context, program_state, model_transform, color) {
@@ -201,7 +235,7 @@ export class Bird extends Scene {
      **/
     update_y(time_after_click) {
         // If user has not clicked "up" for once, t_after_click is set to 0.
-        const dist_from_base_y = this.initial_v_y * time_after_click - 0.5 * 9.8 * time_after_click * time_after_click;
+        const dist_from_base_y = this.initial_v_y * time_after_click - 0.5 * this.acceleration * time_after_click * time_after_click;
 
         // This line sets a minimum y position of 0 to make development easier.
         // In the actual game, once the user clicked "up", there is no such minimum y value, and
@@ -360,6 +394,7 @@ export class Bird extends Scene {
         const time_per_pipe = this.pipe_distance / this.game_speed;
         const raw_score = this.game_start ? Math.ceil((this.t - this.game_start_time) / time_per_pipe) : 0;
         this.score = raw_score > 0 ? raw_score : 0;
+        this.highest_score = Math.max(this.score, this.highest_score);
 
         const score_string = "Score: " + this.score.toString();
         this.shapes.text.set_string(score_string, context.context);
@@ -404,9 +439,22 @@ export class Bird extends Scene {
             //draw game end scene
             program_state.set_camera(this.sideview_cam_pos);
             this.sideview = true;
-            this.shapes.square.draw(context, program_state, Mat4.rotation(Math.PI / 2 * 3, 0, 1, 0).times(Mat4.scale(20, 20, 1)), this.materials.game_end);
-        }
+            this.shapes.square.draw(context, program_state, matrix_transform.times(Mat4.translation(0, 7, 0))
+                                                                            .times(Mat4.rotation(Math.PI / 2 * 3, 0, 1, 0))
+                                                                            .times(Mat4.scale(20, 20, 1)), this.materials.game_end);
 
+            const highscore_model_transform = matrix_transform.times(Mat4.translation(-3, 12, -12))
+                                                              .times(Mat4.rotation(3 * Math.PI / 2, 0, 1, 0));
+            const score_string = "Highest score: " + this.highest_score.toString();
+            this.shapes.text.set_string(score_string, context.context);
+            this.shapes.text.draw(context, program_state, highscore_model_transform, this.materials.text_image);  
+            
+            const replay_model_transform = matrix_transform.times(Mat4.translation(-3, 8, -10))
+                                                           .times(Mat4.rotation(3 * Math.PI / 2, 0, 1, 0));
+            const replay_string = "Replay with \"n\"";
+            this.shapes.text.set_string(replay_string, context.context);
+            this.shapes.text.draw(context, program_state, replay_model_transform, this.materials.text_image);  
+        }
 
         const blending_factor = 0.1;
         if (!this.sideview) {
