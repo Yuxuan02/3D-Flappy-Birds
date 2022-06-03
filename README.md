@@ -20,8 +20,8 @@ The game is controlled by keyboard inputs
 - `b` -> change day/night theme
 
 the following operation can only be done **before** starting the game
-- `g` -> reset acceleration to default
-- `h` -> increase acceleration
-- `j` -> reset initial velcity to default
-- `k` -> increase acceleration
+- `g` -> decrease acceleration (min: 5.8, default: 9.8)
+- `h` -> increase acceleration (max: 11.8)
+- `j` -> decrease initial velocity (min: 4, default: 6)
+- `k` -> increase initial velocity (max: 7)
 
