@@ -247,11 +247,12 @@ export class Bird extends Scene {
         const dist_from_base_y = this.initial_v_y * time_after_click - 0.5 * this.acceleration * time_after_click * time_after_click;
 
         // This line sets a minimum y position of 0 to make development easier.
-        // In the actual game, once the user clicked "up", there is no such minimum y value, and
-        // this line should be removed later.
-        // this.y = dist_from_base_y + this.base_y
         this.y = dist_from_base_y + this.base_y >= 0 ? dist_from_base_y + this.base_y : 0;
         this.y = time_after_click === 0 ? 12 : this.y;
+
+        if (this.y === 0) {
+            this.game_end = true;
+        }
     }
 
     /**
